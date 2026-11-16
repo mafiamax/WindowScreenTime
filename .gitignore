@@ -7,6 +7,7 @@ Publish/
 *.old.exe
 WindowScreenTime.exe
 WindowScreenTime_Setup.exe
+GitHub_Yukle.bat
 Installer/bin/
 Installer/obj/
 Installer/payload.zip

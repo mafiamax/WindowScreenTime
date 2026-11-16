@@ -1,0 +1,40 @@
+name: Build and Release WindowScreenTime
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build WindowScreenTime
+        run: dotnet build WindowScreenTime.csproj -c Release
+
+      - name: Package Installer Payload
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "bin\Release\net8.0-windows\*" -DestinationPath "Installer\payload.zip" -Force
+
+      - name: Publish WindowScreenTime_Setup.exe
+        run: dotnet publish Installer\WindowScreenTime.Setup.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o ./ReleaseOutput
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./ReleaseOutput/WindowScreenTime_Setup.exe
+          generate_release_notes: true
