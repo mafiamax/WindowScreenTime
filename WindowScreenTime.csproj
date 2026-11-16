@@ -15,13 +15,18 @@
     <Title>WindowScreenTime</Title>
     <AssemblyTitle>WindowScreenTime</AssemblyTitle>
     <Product>WindowScreenTime</Product>
-    <Company>WindowScreenTime</Company>
-    <Copyright>Copyright (c) 2026</Copyright>
+    <Company>Erhan.M</Company>
+    <Copyright>Copyright (c) 2026 Erhan.M</Copyright>
     <Description>Windows 11 Ekran ve Kullanım Süresi Takipçisi</Description>
     <!-- Sürüm yalnızca buradan yönetilir. AssemblyVersion / FileVersion bu değerden otomatik türetilir;
          ayrıca elle yazılmamalıdır (UpdateService mevcut sürümü AssemblyVersion'dan okur). -->
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Hakkında penceresindeki simge için (pack://application:,,,/Assets/app.ico) -->
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Installer\**" />

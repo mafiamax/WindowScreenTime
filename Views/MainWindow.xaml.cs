@@ -239,19 +239,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+    private void AboutButton_Click(object sender, RoutedEventArgs e)
     {
-        CheckUpdateButton.IsEnabled = false;
-        CheckUpdateButton.Content = "Kontrol Ediliyor...";
-
-        try
+        if (System.Windows.Application.Current is App app)
         {
-            await UpdateService.CheckForUpdatesAsync(isManualCheck: true);
-        }
-        finally
-        {
-            CheckUpdateButton.Content = "Güncellemeleri Kontrol Et";
-            CheckUpdateButton.IsEnabled = true;
+            app.ShowAboutWindow();
         }
     }
 

@@ -13,8 +13,9 @@
     <RootNamespace>WindowScreenTime.Setup</RootNamespace>
     <Title>WindowScreenTime Setup</Title>
     <Product>WindowScreenTime Installer</Product>
-    <Company>mafiamax</Company>
-    <Version>1.0.0</Version>
+    <Company>Erhan.M</Company>
+    <Copyright>Copyright (c) 2026 Erhan.M</Copyright>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

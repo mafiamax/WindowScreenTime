@@ -135,7 +135,7 @@ public partial class SetupWindow : Window
 
             key.SetValue("DisplayName", "WindowScreenTime");
             key.SetValue("DisplayVersion", GetInstalledVersion(installedExe));
-            key.SetValue("Publisher", "mafiamax");
+            key.SetValue("Publisher", "Erhan.M");
             key.SetValue("DisplayIcon", installedExe);
             key.SetValue("InstallLocation", _installDir);
             key.SetValue("UninstallString", $"\"{installedExe}\" --uninstall");

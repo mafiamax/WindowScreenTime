@@ -146,8 +146,8 @@ public partial class App : System.Windows.Application
         var openItem = new Forms.ToolStripMenuItem("Kontrol Panelini Aç");
         openItem.Click += (_, _) => ShowDashboardWindow();
 
-        var updateItem = new Forms.ToolStripMenuItem("Güncellemeleri Kontrol Et");
-        updateItem.Click += async (_, _) => await UpdateService.CheckForUpdatesAsync(isManualCheck: true);
+        var aboutItem = new Forms.ToolStripMenuItem("Hakkında");
+        aboutItem.Click += (_, _) => ShowAboutWindow();
 
         var exitItem = new Forms.ToolStripMenuItem("Tamamen Çıkış Yap");
         exitItem.Click += (_, _) => ExitApplication();
@@ -155,7 +155,7 @@ public partial class App : System.Windows.Application
         contextMenu.Items.Add(_todayStatusMenuItem);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
         contextMenu.Items.Add(openItem);
-        contextMenu.Items.Add(updateItem);
+        contextMenu.Items.Add(aboutItem);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
         contextMenu.Items.Add(exitItem);
 
@@ -213,6 +213,38 @@ public partial class App : System.Windows.Application
 
         MainWindow.Activate();
         MainWindow.Focus();
+    }
+
+    private AboutWindow? _aboutWindow;
+
+    /// <summary>
+    /// Hakkında penceresini açar (tek örnek). Ana pencere görünürse onun ortasında, değilse
+    /// (tepsi menüsünden açıldığında) ekranın ortasında ve en üstte açılır.
+    /// </summary>
+    public void ShowAboutWindow()
+    {
+        if (_aboutWindow != null)
+        {
+            _aboutWindow.Activate();
+            return;
+        }
+
+        _aboutWindow = new AboutWindow(Storage.DataDirectory);
+        _aboutWindow.Closed += (_, _) => _aboutWindow = null;
+
+        if (MainWindow != null && MainWindow.IsVisible && MainWindow.WindowState != WindowState.Minimized)
+        {
+            _aboutWindow.Owner = MainWindow;
+            _aboutWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        }
+        else
+        {
+            _aboutWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            _aboutWindow.ShowInTaskbar = true;
+        }
+
+        _aboutWindow.Show();
+        _aboutWindow.Activate();
     }
 
     public void ShowMinimizedNotificationOnce()

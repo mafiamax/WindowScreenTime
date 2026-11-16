@@ -13,40 +13,7 @@
         Closing="MainWindow_Closing">
 
     <Window.Resources>
-        <!-- Modern Yuvarlatılmış Buton Stili -->
-        <Style x:Key="ModernButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#262B36"/>
-            <Setter Property="Foreground" Value="#F3F4F6"/>
-            <Setter Property="BorderBrush" Value="#374151"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="12.5"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#323947"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#38BDF8"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1E293B"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <!-- ModernButtonStyle App.xaml içinde tanımlıdır (Hakkında penceresiyle ortak) -->
 
         <!-- DataGrid Koyu Tema Stilleri -->
         <Style TargetType="DataGridColumnHeader">
@@ -137,21 +104,31 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="CheckUpdateButton"
-                        Content="Güncellemeleri Kontrol Et"
-                        Style="{StaticResource ModernButtonStyle}"
-                        Margin="0,0,8,0"
-                        ToolTip="GitHub (mafiamax/WindowScreenTime) üzerinden yeni sürüm kontrolü yapar"
-                        Click="CheckUpdateButton_Click"/>
                 <Button x:Name="ImportEventLogButton"
                         Content="Olay Günlüğünü Tara"
                         Style="{StaticResource ModernButtonStyle}"
                         Margin="0,0,8,0"
-                        ToolTip="Windows Sistem Olay Günlüğü'nden geçmiş açık kalma sürelerini aktarır"
-                        Click="ImportEventLogButton_Click"/>
+                        ToolTipService.ShowDuration="20000"
+                        Click="ImportEventLogButton_Click">
+                    <Button.ToolTip>
+                        <TextBlock MaxWidth="320" TextWrapping="Wrap">
+                            Geçmiş günleri Windows Olay Günlüğü'nden doldurur.
+                            <LineBreak/><LineBreak/>
+                            Not: Olay Günlüğü yalnızca bilgisayarın açık kaldığı süreyi bilir; kilitli,
+                            ekranı kapalı veya boşta geçen zamanı ayırt edemez. Bu yüzden aktarılan
+                            "Aktif" süreler yüksek görünebilir. Uygulamanın kendi ölçtüğü günlere dokunulmaz.
+                        </TextBlock>
+                    </Button.ToolTip>
+                </Button>
                 <Button Content="Tepsiye Küçült"
                         Style="{StaticResource ModernButtonStyle}"
+                        Margin="0,0,8,0"
                         Click="MinimizeToTrayButton_Click"/>
+                <Button x:Name="AboutButton"
+                        Content="Hakkında"
+                        Style="{StaticResource ModernButtonStyle}"
+                        ToolTip="Uygulama bilgileri, künye ve güncelleme kontrolü"
+                        Click="AboutButton_Click"/>
             </StackPanel>
         </Grid>
 
