@@ -1,0 +1,12 @@
+bin/
+obj/
+Publish/
+.vs/
+*.user
+*.suo
+*.old.exe
+WindowScreenTime.exe
+WindowScreenTime_Setup.exe
+Installer/bin/
+Installer/obj/
+Installer/payload.zip

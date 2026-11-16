@@ -1,0 +1,34 @@
+using System.Runtime.InteropServices;
+
+namespace WindowScreenTime.Services;
+
+public static class IdleDetector
+{
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+    /// <summary>
+    /// Kullanıcının klavye veya fareye en son dokunduğu andan itibaren geçen süreyi döndürür.
+    /// </summary>
+    public static TimeSpan GetIdleTime()
+    {
+        var lastInputInfo = new LASTINPUTINFO
+        {
+            cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>()
+        };
+
+        if (!GetLastInputInfo(ref lastInputInfo))
+            return TimeSpan.Zero;
+
+        uint currentTick = unchecked((uint)Environment.TickCount);
+        uint idleTicks = unchecked(currentTick - lastInputInfo.dwTime);
+        return TimeSpan.FromMilliseconds(idleTicks);
+    }
+}
