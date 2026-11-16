@@ -13,24 +13,44 @@ public class UsageTrackerService : IDisposable
         Sleep
     }
 
+    // Zamanlayıcı bu süreden uzun atladıysa bilgisayarın uykudan / Modern Standby'dan döndüğü kabul edilir.
+    private static readonly TimeSpan SleepGapThreshold = TimeSpan.FromMinutes(2);
+
     private readonly DataStorageService _storage;
     private readonly DispatcherTimer _timer;
     private readonly PowerNotificationListener _powerListener;
+
+    // Geçen süre, sistem saatinden (DateTime.Now) değil monoton sayaçtan (Environment.TickCount64)
+    // ölçülür. Böylece yaz saati geçişi veya saatin elle/NTP ile düzeltilmesi "uyku" olarak sayılmaz.
+    // TickCount64 (GetTickCount64) uyku/hazırda bekleme süresini de sayar.
     private DateTime _lastTickTime;
-    private DateTime? _sleepStartTime;
-    private bool _isLockedOrSleeping;
+    private long _lastTickMono;
+
+    // Duraklatma (uyku sayacı) durumu: kilit, ekran kapalı ve sistem uykusu AYRI ayrı izlenir.
+    // Takip ancak üçü de normale döndüğünde devam eder (ör. kilit ekranında ekran yeniden açılınca
+    // takip başlamaz).
+    private bool _isLocked;
+    private bool _isDisplayOff;
+    private bool _isSuspended;
+    private bool _isPaused;
+    private long _pauseStartMono;
+
     private bool _isCurrentlyIdle;
+    // Kesintisiz Aktif zaman diliminin başladığı an. Boşta moduna geçişte geriye dönük düzeltme
+    // bu andan daha geriye gitmez (uyku veya önceki boşta süresine taşmamak için).
+    private DateTime? _activeRunStart;
     private int _activeTicksSinceLastSave;
 
     public event Action? StatsUpdated;
 
     public bool IsCurrentlyIdle => _isCurrentlyIdle;
-    public bool IsLockedOrSleeping => _isLockedOrSleeping;
+    public bool IsLockedOrSleeping => _isPaused;
 
     public UsageTrackerService(DataStorageService storage)
     {
         _storage = storage;
         _lastTickTime = DateTime.Now;
+        _lastTickMono = Environment.TickCount64;
 
         var today = _storage.GetOrCreateDay(_lastTickTime);
         if (!today.FirstSeen.HasValue)
@@ -55,6 +75,7 @@ public class UsageTrackerService : IDisposable
     {
         PowerNotificationListener.AllowSystemSleep();
         _lastTickTime = DateTime.Now;
+        _lastTickMono = Environment.TickCount64;
         _timer.Start();
     }
 
@@ -71,6 +92,20 @@ public class UsageTrackerService : IDisposable
         return imported.Count;
     }
 
+    /// <summary>
+    /// Kullanıcının uygulamayla doğrudan etkileşime girdiği (ör. pencereyi etkinleştirdiği) anlarda çağrılır.
+    /// Bu anda oturum kilitli, ekran kapalı veya sistem uykuda olamaz; kaçırılmış bir kilit açma /
+    /// ekran açılma olayı yüzünden takibin duraklatılmış halde takılı kalmasını önler.
+    /// </summary>
+    public void NotifyUserPresent()
+    {
+        _isLocked = false;
+        _isDisplayOff = false;
+        _isSuspended = false;
+        UpdatePauseState();
+        ProcessElapsedUntilNow();
+    }
+
     private void OnTimerTick(object? sender, EventArgs e)
     {
         ProcessElapsedUntilNow();
@@ -79,25 +114,24 @@ public class UsageTrackerService : IDisposable
     public void ProcessElapsedUntilNow()
     {
         DateTime now = DateTime.Now;
-        TimeSpan elapsed = now - _lastTickTime;
+        long nowMono = Environment.TickCount64;
+        long elapsedMs = nowMono - _lastTickMono;
 
-        if (elapsed.TotalSeconds <= 0)
-        {
-            _lastTickTime = now;
+        _lastTickTime = now;
+        _lastTickMono = nowMono;
+
+        if (_isPaused || elapsedMs <= 0)
             return;
-        }
 
-        if (_isLockedOrSleeping)
-        {
-            _lastTickTime = now;
-            return;
-        }
+        TimeSpan elapsed = TimeSpan.FromMilliseconds(elapsedMs);
+        DateTime start = now - elapsed;
 
-        // Eğer zamanlayıcı > 2 dakika atladıysa bilgisayar Modern Standby / uykudan yeni uyanmıştır
-        if (elapsed.TotalMinutes > 2)
+        // Zamanlayıcı uzun süre atladıysa bilgisayar Modern Standby / uykudan yeni uyanmıştır
+        if (elapsed > SleepGapThreshold)
         {
-            AllocateTimeAcrossMidnight(_lastTickTime, now, TimeBucket.Sleep);
-            _lastTickTime = now;
+            AllocateTimeAcrossMidnight(start, now, TimeBucket.Sleep);
+            _isCurrentlyIdle = false;
+            _activeRunStart = null;
             _storage.SaveUsage();
             StatsUpdated?.Invoke();
             return;
@@ -108,19 +142,26 @@ public class UsageTrackerService : IDisposable
         bool wasIdle = _isCurrentlyIdle;
         _isCurrentlyIdle = idleTime >= idleThreshold;
 
-        AllocateTimeAcrossMidnight(
-            _lastTickTime,
-            now,
-            _isCurrentlyIdle ? TimeBucket.Idle : TimeBucket.Active);
-
-        _lastTickTime = now;
+        AllocateTimeAcrossMidnight(start, now, _isCurrentlyIdle ? TimeBucket.Idle : TimeBucket.Active);
 
         if (_isCurrentlyIdle)
         {
-            // Kullanıcı yeni Boşta (Idle) moduna geçtiyse yalnızca bir kez diske kaydet,
-            // boşta kaldığı sürece diske yazma yapma (Windows'un uykuya geçişini ve disk/antivirüs aktivitesini tetiklememek için).
             if (!wasIdle)
             {
+                // Boşta eşiği dolana kadar geçen süre (son girdiden bu ana kadar) Aktif olarak yazılmıştı.
+                // Bu süreyi geriye dönük olarak Boşta'ya taşı. Kesintisiz Aktif dilimin başından öteye gitme.
+                DateTime lastInput = now - idleTime;
+                DateTime reclassifyFrom = _activeRunStart.HasValue && _activeRunStart.Value > lastInput
+                    ? _activeRunStart.Value
+                    : lastInput;
+                if (reclassifyFrom < start)
+                {
+                    ReclassifyActiveToIdle(reclassifyFrom, start);
+                }
+                _activeRunStart = null;
+
+                // Kullanıcı yeni Boşta (Idle) moduna geçtiyse yalnızca bir kez diske kaydet,
+                // boşta kaldığı sürece diske yazma yapma (Windows'un uykuya geçişini ve disk/antivirüs aktivitesini tetiklememek için).
                 _storage.SaveUsage();
                 _activeTicksSinceLastSave = 0;
                 PowerNotificationListener.AllowSystemSleep();
@@ -129,6 +170,7 @@ public class UsageTrackerService : IDisposable
         }
         else
         {
+            _activeRunStart ??= start;
             _activeTicksSinceLastSave++;
 
             // Aktif kullanımda her 12 adımda bir (2 dakikada bir) veya Idle'dan çıkınca kaydet
@@ -142,57 +184,76 @@ public class UsageTrackerService : IDisposable
         }
     }
 
-    private void EnterSleepOrLockState()
+    private void UpdatePauseState()
     {
-        if (!_isLockedOrSleeping)
+        bool shouldPause = _isLocked || _isDisplayOff || _isSuspended;
+        if (shouldPause && !_isPaused)
         {
-            ProcessElapsedUntilNow();
-            _isLockedOrSleeping = true;
-            _sleepStartTime = DateTime.Now;
-            _timer.Stop(); // Uyku / ekran kapalıyken zamanlayıcıyı tamamen durdur (0 arka plan aktivitesi)
-            _storage.SaveUsage();
-            PowerNotificationListener.AllowSystemSleep();
-            StatsUpdated?.Invoke();
+            EnterPause();
+        }
+        else if (!shouldPause && _isPaused)
+        {
+            ExitPause();
         }
     }
 
-    private void ResumeFromSleepOrLockState()
+    private void EnterPause()
     {
-        if (_isLockedOrSleeping)
+        ProcessElapsedUntilNow();
+        _isPaused = true;
+        _pauseStartMono = _lastTickMono;
+        _isCurrentlyIdle = false;
+        _activeRunStart = null;
+        _timer.Stop(); // Uyku / kilit / ekran kapalıyken zamanlayıcıyı tamamen durdur (0 arka plan aktivitesi)
+        _storage.SaveUsage();
+        PowerNotificationListener.AllowSystemSleep();
+        StatsUpdated?.Invoke();
+    }
+
+    private void ExitPause()
+    {
+        DateTime now = DateTime.Now;
+        long nowMono = Environment.TickCount64;
+
+        AllocatePausedTimeUntil(now, nowMono);
+
+        _isPaused = false;
+        _isCurrentlyIdle = false;
+        _activeRunStart = null;
+        _lastTickTime = now;
+        _lastTickMono = nowMono;
+
+        var today = _storage.GetOrCreateDay(now);
+        if (!today.FirstSeen.HasValue)
+            today.FirstSeen = now;
+        today.LastSeen = now;
+
+        _storage.SaveUsage();
+        if (!_timer.IsEnabled)
         {
-            DateTime now = DateTime.Now;
-            if (_sleepStartTime.HasValue && now > _sleepStartTime.Value)
-            {
-                AllocateTimeAcrossMidnight(_sleepStartTime.Value, now, TimeBucket.Sleep);
-                _sleepStartTime = null;
-            }
-
-            _isLockedOrSleeping = false;
-            _isCurrentlyIdle = false;
-            _lastTickTime = now;
-
-            var today = _storage.GetOrCreateDay(now);
-            today.LastSeen = now;
-
-            _storage.SaveUsage();
-            if (!_timer.IsEnabled)
-            {
-                _timer.Start();
-            }
-            StatsUpdated?.Invoke();
+            _timer.Start();
         }
+        StatsUpdated?.Invoke();
+    }
+
+    /// <summary>
+    /// Duraklatma başlangıcından verilen ana kadar geçen süreyi Uyku olarak yazar ve
+    /// duraklatma başlangıcını bu ana taşır (aynı süre iki kez sayılmaz).
+    /// </summary>
+    private void AllocatePausedTimeUntil(DateTime now, long nowMono)
+    {
+        long pausedMs = nowMono - _pauseStartMono;
+        if (pausedMs > 0)
+        {
+            AllocateTimeAcrossMidnight(now - TimeSpan.FromMilliseconds(pausedMs), now, TimeBucket.Sleep);
+        }
+        _pauseStartMono = nowMono;
     }
 
     private void OnDisplayPowerStateChanged(bool isDisplayOn)
     {
-        if (!isDisplayOn)
-        {
-            EnterSleepOrLockState();
-        }
-        else
-        {
-            ResumeFromSleepOrLockState();
-        }
+        _isDisplayOff = !isDisplayOn;
+        UpdatePauseState();
     }
 
     private void AllocateTimeAcrossMidnight(DateTime start, DateTime end, TimeBucket bucket)
@@ -210,6 +271,7 @@ public class UsageTrackerService : IDisposable
 
                 if (bucket == TimeBucket.Sleep)
                 {
+                    // Uyku süresi FirstSeen / LastSeen alanlarına dokunmaz
                     dayUsage.SleepSeconds += seconds;
                 }
                 else if (bucket == TimeBucket.Idle)
@@ -231,15 +293,42 @@ public class UsageTrackerService : IDisposable
         }
     }
 
+    private void ReclassifyActiveToIdle(DateTime start, DateTime end)
+    {
+        DateTime cursor = start;
+        while (cursor < end)
+        {
+            DateTime nextMidnight = cursor.Date.AddDays(1);
+            DateTime segmentEnd = end < nextMidnight ? end : nextMidnight;
+            long seconds = (long)Math.Round((segmentEnd - cursor).TotalSeconds);
+
+            if (seconds > 0)
+            {
+                DailyUsage dayUsage = _storage.GetOrCreateDay(cursor);
+                long moved = Math.Min(seconds, dayUsage.ActiveSeconds);
+                dayUsage.ActiveSeconds -= moved;
+                dayUsage.IdleSeconds += moved;
+
+                // Son aktif an, son klavye/fare girdisinden sonrası olamaz
+                if (dayUsage.LastSeen.HasValue && dayUsage.LastSeen.Value > cursor)
+                    dayUsage.LastSeen = cursor;
+            }
+
+            cursor = segmentEnd;
+        }
+    }
+
     private void OnSessionSwitch(object sender, SessionSwitchEventArgs e)
     {
         if (e.Reason is SessionSwitchReason.SessionLock or SessionSwitchReason.SessionLogoff or SessionSwitchReason.ConsoleDisconnect)
         {
-            EnterSleepOrLockState();
+            _isLocked = true;
+            UpdatePauseState();
         }
         else if (e.Reason is SessionSwitchReason.SessionUnlock or SessionSwitchReason.SessionLogon or SessionSwitchReason.ConsoleConnect)
         {
-            ResumeFromSleepOrLockState();
+            _isLocked = false;
+            UpdatePauseState();
         }
     }
 
@@ -247,26 +336,32 @@ public class UsageTrackerService : IDisposable
     {
         if (e.Mode == PowerModes.Suspend)
         {
-            EnterSleepOrLockState();
+            _isSuspended = true;
+            UpdatePauseState();
         }
         else if (e.Mode == PowerModes.Resume)
         {
-            ResumeFromSleepOrLockState();
+            _isSuspended = false;
+            UpdatePauseState();
         }
+    }
+
+    private void FlushCurrentState()
+    {
+        if (_isPaused)
+        {
+            AllocatePausedTimeUntil(DateTime.Now, Environment.TickCount64);
+        }
+        else
+        {
+            ProcessElapsedUntilNow();
+        }
+        _storage.SaveUsage();
     }
 
     private void OnSessionEnding(object sender, SessionEndingEventArgs e)
     {
-        if (!_isLockedOrSleeping)
-        {
-            ProcessElapsedUntilNow();
-        }
-        else if (_sleepStartTime.HasValue)
-        {
-            AllocateTimeAcrossMidnight(_sleepStartTime.Value, DateTime.Now, TimeBucket.Sleep);
-            _sleepStartTime = null;
-        }
-        _storage.SaveUsage();
+        FlushCurrentState();
     }
 
     public DailyUsage GetTodayUsage()
@@ -290,11 +385,7 @@ public class UsageTrackerService : IDisposable
     public void Dispose()
     {
         _timer.Stop();
-        if (!_isLockedOrSleeping)
-        {
-            ProcessElapsedUntilNow();
-        }
-        _storage.SaveUsage();
+        FlushCurrentState();
 
         _powerListener.DisplayPowerStateChanged -= OnDisplayPowerStateChanged;
         _powerListener.Dispose();

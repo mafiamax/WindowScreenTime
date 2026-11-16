@@ -72,7 +72,7 @@ public partial class MainWindow : Window
     protected override void OnActivated(EventArgs e)
     {
         base.OnActivated(e);
-        _tracker.ProcessElapsedUntilNow();
+        _tracker.NotifyUserPresent();
         RefreshDashboard();
     }
 

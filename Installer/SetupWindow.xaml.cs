@@ -134,7 +134,7 @@ public partial class SetupWindow : Window
             if (key == null) return;
 
             key.SetValue("DisplayName", "WindowScreenTime");
-            key.SetValue("DisplayVersion", "1.0.0");
+            key.SetValue("DisplayVersion", GetInstalledVersion(installedExe));
             key.SetValue("Publisher", "mafiamax");
             key.SetValue("DisplayIcon", installedExe);
             key.SetValue("InstallLocation", _installDir);
@@ -147,6 +147,27 @@ public partial class SetupWindow : Window
         {
             // Yoksay
         }
+    }
+
+    /// <summary>
+    /// Program Ekle/Kaldır'da gösterilecek sürümü, kurulan WindowScreenTime.exe dosyasının kendi
+    /// sürüm bilgisinden okur (elle yazılmış sabit değer zamanla eskir).
+    /// </summary>
+    private static string GetInstalledVersion(string installedExe)
+    {
+        try
+        {
+            var info = FileVersionInfo.GetVersionInfo(installedExe);
+            if (info.FileMajorPart > 0 || info.FileMinorPart > 0 || info.FileBuildPart > 0)
+                return $"{info.FileMajorPart}.{info.FileMinorPart}.{info.FileBuildPart}";
+        }
+        catch
+        {
+            // Yoksay
+        }
+
+        var own = Assembly.GetExecutingAssembly().GetName().Version;
+        return own == null ? "1.0.0" : $"{own.Major}.{own.Minor}.{Math.Max(0, own.Build)}";
     }
 
     private static void CreateShortcut(string shortcutPath, string targetPath, string workingDir, string description)

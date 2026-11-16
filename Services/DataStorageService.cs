@@ -64,10 +64,37 @@ public class DataStorageService
                         .ToDictionary(g => g.Key, g => g.First());
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"Usage load error: {ex.Message}");
                 _usageByDate = new Dictionary<string, DailyUsage>();
+
+                // Okunamayan geçmiş dosyasını, üzerine yazmadan önce yedekle. Yedek alınamazsa
+                // (ör. dosya kilitli) mevcut dosyayı ezmemek için kayıt işlemini devre dışı bırak.
+                if (!TryBackupUnreadableUsageFile())
+                {
+                    _usageSaveBlocked = true;
+                }
             }
+        }
+    }
+
+    private bool _usageSaveBlocked;
+
+    private bool TryBackupUnreadableUsageFile()
+    {
+        try
+        {
+            string backupPath = Path.Combine(
+                _dataDir,
+                $"usage_history.unreadable-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+            File.Copy(_usageFilePath, backupPath, overwrite: false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Usage backup error: {ex.Message}");
+            return false;
         }
     }
 
@@ -78,11 +105,12 @@ public class DataStorageService
         {
             if (!_usageByDate.TryGetValue(key, out var usage))
             {
+                // FirstSeen / LastSeen burada ATANMAZ: yalnızca gerçek Aktif/Boşta zaman dilimleri
+                // (UsageTrackerService.AllocateTimeAcrossMidnight) bu alanları doldurur. Aksi halde gece
+                // yarısını uykuda geçen bir günün "İlk Açılış" saati 00:00 görünür.
                 usage = new DailyUsage
                 {
-                    DateKey = key,
-                    FirstSeen = date,
-                    LastSeen = date
+                    DateKey = key
                 };
                 _usageByDate[key] = usage;
             }
@@ -132,32 +160,46 @@ public class DataStorageService
 
     public void MergeImportedDays(IEnumerable<DailyUsage> importedDays)
     {
+        // Kural: Olay Günlüğü yalnızca "bilgisayar açık / uykuda" bilgisini verir; kilit, ekran kapalı ve
+        // boşta ayrımını bilmez. Bu yüzden uygulamanın canlı ölçtüğü sayaçların ÜZERİNE ASLA yazılmaz.
+        // İçe aktarılan veri yalnızca (a) hiç kaydı olmayan günleri, (b) daha önce de Olay Günlüğünden
+        // gelmiş günleri ve (c) canlı takipte hiç Aktif/Boşta süresi olmayan geçmiş günleri doldurur.
+        // Bugünün kaydına hiç dokunulmaz (canlı takip devam ediyor).
+        string todayKey = DateTime.Today.ToString("yyyy-MM-dd");
+
         lock (_syncLock)
         {
             foreach (var day in importedDays)
             {
                 if (!_usageByDate.TryGetValue(day.DateKey, out var existing))
                 {
+                    day.IsImportedFromEventLog = true;
                     _usageByDate[day.DateKey] = day;
+                    continue;
                 }
-                else
-                {
-                    existing.SleepSeconds = day.SleepSeconds;
 
-                    if (existing.IsImportedFromEventLog || existing.IdleSeconds == 0)
-                    {
-                        existing.ActiveSeconds = Math.Max(0, day.ActiveSeconds - existing.IdleSeconds);
-                        if (day.FirstSeen.HasValue)
-                            existing.FirstSeen = day.FirstSeen;
-                        if (day.LastSeen.HasValue && (!existing.LastSeen.HasValue || day.LastSeen > existing.LastSeen))
-                            existing.LastSeen = day.LastSeen;
-                    }
-                    else
-                    {
-                        if (day.FirstSeen.HasValue && (!existing.FirstSeen.HasValue || day.FirstSeen < existing.FirstSeen))
-                            existing.FirstSeen = day.FirstSeen;
-                    }
+                if (day.DateKey == todayKey)
+                    continue;
+
+                if (existing.IsImportedFromEventLog)
+                {
+                    // Önceki içe aktarmanın sonucunu yenisiyle değiştir
+                    existing.ActiveSeconds = day.ActiveSeconds;
+                    existing.IdleSeconds = 0;
+                    existing.SleepSeconds = day.SleepSeconds;
+                    existing.FirstSeen = day.FirstSeen;
+                    existing.LastSeen = day.LastSeen;
                 }
+                else if (existing.ActiveSeconds == 0 && existing.IdleSeconds == 0)
+                {
+                    // Canlı kayıtta yalnızca uyku var (ör. gün boyu uykuda kalan bir gün): boşlukları doldur
+                    existing.ActiveSeconds = day.ActiveSeconds;
+                    existing.SleepSeconds = Math.Max(existing.SleepSeconds, day.SleepSeconds);
+                    existing.FirstSeen = day.FirstSeen;
+                    existing.LastSeen = day.LastSeen;
+                    existing.IsImportedFromEventLog = true;
+                }
+                // Aksi halde canlı ölçülmüş gün: hiçbir alana dokunma.
             }
             SaveUsage();
         }
@@ -167,6 +209,12 @@ public class DataStorageService
     {
         lock (_syncLock)
         {
+            if (_usageSaveBlocked)
+            {
+                Debug.WriteLine("Usage save skipped: history file could not be read or backed up.");
+                return;
+            }
+
             try
             {
                 var ordered = _usageByDate.Values.OrderByDescending(x => x.DateKey).ToList();
