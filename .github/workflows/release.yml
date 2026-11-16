@@ -16,6 +16,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Sürüm notu CHANGELOG.md'den alınır. Etiketin sürümü için bölüm yoksa veya
+      # proje dosyalarındaki <Version> etiketle uyuşmuyorsa yayın burada durur.
+      - name: Extract release notes from CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: ./.github/scripts/extract-release-notes.ps1 -Tag "${{ github.ref_name }}" -OutFile release_notes.md
+
       - name: Setup .NET 8.0
         uses: actions/setup-dotnet@v4
         with:
@@ -37,4 +44,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ./ReleaseOutput/WindowScreenTime_Setup.exe
-          generate_release_notes: true
+          body_path: release_notes.md

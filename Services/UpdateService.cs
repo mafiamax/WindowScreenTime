@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace WindowScreenTime.Services;
@@ -97,9 +98,10 @@ public static class UpdateService
 
             if (Version.TryParse(cleanTag, out var remoteVersion) && remoteVersion > currentVersion)
             {
-                string notesSummary = string.IsNullOrWhiteSpace(releaseNotes)
+                string cleanNotes = FormatReleaseNotesForDialog(releaseNotes);
+                string notesSummary = string.IsNullOrWhiteSpace(cleanNotes)
                     ? ""
-                    : $"\n\nSürüm Notları:\n{(releaseNotes.Length > 300 ? releaseNotes[..300] + "..." : releaseNotes)}";
+                    : $"\n\nSürüm Notları:\n{cleanNotes}";
 
                 var ask = System.Windows.MessageBox.Show(
                     $"Yeni bir WindowScreenTime sürümü mevcut!\n\nMevcut Sürüm: v{currentVerStr}\nYeni Sürüm: v{remoteVersion}{notesSummary}\n\nŞimdi indirip güncellemek ister misiniz?",
@@ -139,6 +141,50 @@ public static class UpdateService
                     MessageBoxImage.Warning);
             }
         }
+    }
+
+    /// <summary>
+    /// GitHub sürüm notunu (Markdown) standart mesaj kutusunda okunur hale getirir:
+    /// başlık/kalın/kod işaretlerini ve bağlantı sözdizimini temizler, GitHub'ın otomatik
+    /// "Full Changelog" satırını çıkarır ve uzun notları satır sınırında kısaltır.
+    /// </summary>
+    public static string FormatReleaseNotesForDialog(string? markdown, int maxLength = 600)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+            return "";
+
+        var lines = new List<string>();
+        foreach (string rawLine in markdown.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+        {
+            string line = rawLine.TrimEnd();
+
+            if (line.Contains("Full Changelog", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            line = Regex.Replace(line, @"<!--.*?-->", "");
+            line = Regex.Replace(line, @"^\s{0,3}#{1,6}\s*", "");          // # Başlık
+            line = Regex.Replace(line, @"!?\[([^\]]*)\]\([^)]*\)", "$1");  // [metin](adres) -> metin
+            line = line.Replace("**", "").Replace("__", "").Replace("`", "");
+            line = Regex.Replace(line, @"^(\s*)[*+]\s+", "$1- ");           // * madde -> - madde
+
+            if (Regex.IsMatch(line, @"^\s*([-*_])\s*(\1\s*){2,}$"))         // --- ayırıcı
+                continue;
+
+            if (line.Length == 0 && (lines.Count == 0 || lines[^1].Length == 0))
+                continue;
+
+            lines.Add(line);
+        }
+
+        while (lines.Count > 0 && lines[^1].Length == 0)
+            lines.RemoveAt(lines.Count - 1);
+
+        string text = string.Join("\n", lines);
+        if (text.Length <= maxLength)
+            return text;
+
+        int cut = text.LastIndexOf('\n', maxLength);
+        return (cut > 0 ? text[..cut] : text[..maxLength]).TrimEnd() + "\n...";
     }
 
     private static async Task DownloadAndRunInstallerAsync(string downloadUrl, string expectedSha256, string releasePageUrl)
