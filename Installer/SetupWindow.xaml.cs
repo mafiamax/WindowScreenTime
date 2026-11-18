@@ -19,6 +19,16 @@ public partial class SetupWindow : Window
         string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         _installDir = Path.Combine(localAppData, "Programs", "WindowScreenTime");
         InstallPathText.Text = _installDir;
+
+        // Sürüm, kurulum programının kendi sürümünden okunur (iki .csproj'daki <Version> her zaman aynıdır;
+        // yayın betiği bunu denetler). Böylece başlıkta eski bir sürüm numarası kalmaz.
+        var v = Assembly.GetExecutingAssembly().GetName().Version;
+        string version = v == null ? "" : $"v{v.Major}.{v.Minor}.{Math.Max(0, v.Build)}";
+        if (version.Length > 0)
+        {
+            Title = $"WindowScreenTime {version} Kurulum Sihirbazı";
+            SubtitleText.Text = $"Windows 11 Ekran ve Kullanım Süresi Takipçisi ({version})";
+        }
     }
 
     private void CancelBtn_Click(object sender, RoutedEventArgs e)

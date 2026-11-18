@@ -1,7 +1,7 @@
 <Window x:Class="WindowScreenTime.Setup.SetupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WindowScreenTime v1.0.0 Kurulum Sihirbazı"
+        Title="WindowScreenTime Kurulum Sihirbazı"
         Width="520"
         Height="380"
         ResizeMode="NoResize"
@@ -9,6 +9,67 @@
         Background="#14161B"
         Foreground="#F3F4F6"
         FontFamily="Segoe UI Variable Display, Segoe UI">
+
+    <Window.Resources>
+        <!-- Varsayılan WPF düğme şablonu üzerine gelindiğinde açık mavi zemin çizer ve beyaz yazı
+             okunmaz hale gelir. Bu yüzden düğmeler kendi şablonuyla çizilir. -->
+        <Style x:Key="SetupButtonBase" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource SetupButtonBase}">
+            <Setter Property="Background" Value="#262B36"/>
+            <Setter Property="Foreground" Value="#F3F4F6"/>
+            <Setter Property="BorderBrush" Value="#374151"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#323947"/>
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource SetupButtonBase}">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3B82F6"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <!-- Beyaz yazı her durumda okunur kalsın diye üzerine gelince zemin koyulaşır -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="BorderBrush" Value="#60A5FA"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1E40AF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
 
     <Grid Margin="26,22,26,22">
         <Grid.RowDefinitions>
@@ -24,7 +85,9 @@
                        FontSize="22"
                        FontWeight="Bold"
                        Foreground="#F3F4F6"/>
-            <TextBlock Text="Windows 11 Ekran ve Kullanım Süresi Takipçisi (v1.0.0)"
+            <!-- Sürüm, kurulum programının kendi sürümünden kodda doldurulur -->
+            <TextBlock x:Name="SubtitleText"
+                       Text="Windows 11 Ekran ve Kullanım Süresi Takipçisi"
                        FontSize="13"
                        Foreground="#38BDF8"
                        Margin="0,4,0,0"/>
@@ -90,22 +153,13 @@
             <Button x:Name="CancelBtn"
                     Content="İptal"
                     Width="95"
-                    Height="34"
-                    Background="#262B36"
-                    Foreground="#F3F4F6"
-                    BorderBrush="#374151"
+                    Style="{StaticResource SecondaryButton}"
                     Margin="0,0,10,0"
-                    Cursor="Hand"
                     Click="CancelBtn_Click"/>
             <Button x:Name="InstallBtn"
                     Content="Kurulumu Başlat"
                     Width="150"
-                    Height="34"
-                    Background="#2563EB"
-                    Foreground="White"
-                    FontWeight="SemiBold"
-                    BorderBrush="#3B82F6"
-                    Cursor="Hand"
+                    Style="{StaticResource PrimaryButton}"
                     Click="InstallBtn_Click"/>
         </StackPanel>
     </Grid>

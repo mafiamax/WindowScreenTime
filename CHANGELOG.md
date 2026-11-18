@@ -12,6 +12,14 @@ Yazım kuralları:
 
 ---
 
+## Sürüm 1.2.1 (18 Kasım 2026)
+
+Düzeltmeler:
+- Kurulum sihirbazında sürüm numarası artık doğru gösteriliyor (eskiden hep v1.0.0 yazıyordu)
+- Kurulum sihirbazında İptal ve Kurulumu Başlat düğmelerinin üzerine gelince yazılar okunur kalıyor
+
+---
+
 ## Sürüm 1.2.0 (18 Kasım 2026)
 
 Yenilikler:
