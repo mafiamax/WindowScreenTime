@@ -12,8 +12,9 @@ Yazım kuralları:
 
 ---
 
-## Yayınlanmamış
+## Sürüm 1.2.0 (18 Kasım 2026)
 
+Yenilikler:
 - Mola hatırlatıcısı: kesintisiz çalışma süresi dolunca sistem tepsisinden bildirim (30-120 dk veya kapalı)
 - Geçmişi CSV olarak dışa aktarma (Excel'de doğrudan açılır)
 - Grafikte Aktif, Boşta ve Uykuda süreleri üç renkle birlikte gösteriliyor
