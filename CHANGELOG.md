@@ -14,6 +14,10 @@ Yazım kuralları:
 
 ## Yayınlanmamış
 
+- Mola hatırlatıcısı: kesintisiz çalışma süresi dolunca sistem tepsisinden bildirim (30-120 dk veya kapalı)
+- Geçmişi CSV olarak dışa aktarma (Excel'de doğrudan açılır)
+- Grafikte Aktif, Boşta ve Uykuda süreleri üç renkle birlikte gösteriliyor
+- Açık tema eklendi; Koyu, Açık veya Windows temasına uyan Sistem seçeneği
 - Güncelleme penceresindeki sürüm notları artık düz ve okunaklı metin olarak gösteriliyor
 
 ---

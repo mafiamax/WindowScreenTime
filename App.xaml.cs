@@ -53,8 +53,12 @@ public partial class App : System.Windows.Application
         }
 
         Storage = new DataStorageService();
+        ThemeService.Apply(Storage.Settings.Theme);
+        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+
         Tracker = new UsageTrackerService(Storage);
         Tracker.StatsUpdated += OnTrackerStatsUpdated;
+        Tracker.BreakReminderDue += OnBreakReminderDue;
 
         InitializeTrayIcon();
         Tracker.Start();
@@ -171,6 +175,27 @@ public partial class App : System.Windows.Application
         UpdateTrayTooltip();
     }
 
+    private void OnBreakReminderDue(TimeSpan continuousActive)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            string duration = Models.DailyUsage.FormatDuration((long)continuousActive.TotalSeconds);
+            _notifyIcon?.ShowBalloonTip(
+                8000,
+                "Mola zamanı",
+                $"{duration} kesintisiz çalıştınız. Kısa bir ara verip gözlerinizi dinlendirin.",
+                Forms.ToolTipIcon.Info);
+        });
+    }
+
+    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (e.Category is UserPreferenceCategory.General or UserPreferenceCategory.Color or UserPreferenceCategory.VisualStyle)
+        {
+            Dispatcher.InvokeAsync(ThemeService.ReapplyIfFollowingSystem);
+        }
+    }
+
     private void OnTrackerStatsUpdated()
     {
         Dispatcher.InvokeAsync(UpdateTrayTooltip);
@@ -259,6 +284,8 @@ public partial class App : System.Windows.Application
     public void ExitApplication()
     {
         IsExiting = true;
+        SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+        Tracker.BreakReminderDue -= OnBreakReminderDue;
         Tracker.StatsUpdated -= OnTrackerStatsUpdated;
         Tracker.Dispose();
 

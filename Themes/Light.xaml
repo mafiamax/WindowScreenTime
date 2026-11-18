@@ -1,0 +1,56 @@
+<!-- Açık tema. Dark.xaml ile AYNI anahtarları içermelidir. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Genel -->
+    <SolidColorBrush x:Key="BgPrimaryBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="BgCardBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BgCardHoverBrush" Color="#F9FAFB"/>
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#E5E7EB"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#111827"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="AccentBlueBrush" Color="#0284C7"/>
+    <SolidColorBrush x:Key="AccentIndigoBrush" Color="#4F46E5"/>
+    <SolidColorBrush x:Key="AccentGreenBrush" Color="#059669"/>
+    <SolidColorBrush x:Key="AccentAmberBrush" Color="#B45309"/>
+
+    <!-- Düğmeler -->
+    <SolidColorBrush x:Key="ButtonBgBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ButtonFgBrush" Color="#111827"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#D1D5DB"/>
+    <SolidColorBrush x:Key="ButtonHoverBgBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="ButtonHoverBorderBrush" Color="#0284C7"/>
+    <SolidColorBrush x:Key="ButtonPressedBgBrush" Color="#E5E7EB"/>
+    <SolidColorBrush x:Key="ButtonSelectedBgBrush" Color="#2563EB"/>
+    <SolidColorBrush x:Key="ButtonSelectedFgBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="DangerBorderBrush" Color="#FCA5A5"/>
+    <SolidColorBrush x:Key="DangerFgBrush" Color="#B91C1C"/>
+
+    <!-- Tablo -->
+    <SolidColorBrush x:Key="GridHeaderBgBrush" Color="#F9FAFB"/>
+    <SolidColorBrush x:Key="GridHeaderFgBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="GridRowBgBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="GridRowFgBrush" Color="#111827"/>
+    <SolidColorBrush x:Key="GridRowBorderBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="GridRowHoverBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="GridRowSelectedBrush" Color="#DBEAFE"/>
+    <SolidColorBrush x:Key="GridRowSelectedFgBrush" Color="#111827"/>
+
+    <!-- Grafik -->
+    <SolidColorBrush x:Key="ChartTrackBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="ChartActiveBrush" Color="#3B82F6"/>
+    <SolidColorBrush x:Key="ChartIdleBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="ChartSleepBrush" Color="#CBD5E1"/>
+    <SolidColorBrush x:Key="ChartEmptyBrush" Color="#E5E7EB"/>
+    <SolidColorBrush x:Key="ChartLabelBrush" Color="#6B7280"/>
+    <SolidColorBrush x:Key="ChartTodayLabelBrush" Color="#0284C7"/>
+
+    <!-- Durum rozeti -->
+    <SolidColorBrush x:Key="StatusActiveBgBrush" Color="#ECFDF5"/>
+    <SolidColorBrush x:Key="StatusActiveBorderBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="StatusActiveDotBrush" Color="#10B981"/>
+    <SolidColorBrush x:Key="StatusActiveTextBrush" Color="#047857"/>
+    <SolidColorBrush x:Key="StatusWarnBgBrush" Color="#FFFBEB"/>
+    <SolidColorBrush x:Key="StatusWarnBorderBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="StatusWarnDotBrush" Color="#F59E0B"/>
+    <SolidColorBrush x:Key="StatusWarnTextBrush" Color="#B45309"/>
+</ResourceDictionary>

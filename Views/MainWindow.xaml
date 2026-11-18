@@ -3,41 +3,40 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Windows Screen Time"
         Width="1040"
-        Height="740"
+        Height="760"
         MinWidth="880"
-        MinHeight="620"
+        MinHeight="640"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BgPrimaryBrush}"
-        Foreground="{StaticResource TextPrimaryBrush}"
+        Background="{DynamicResource BgPrimaryBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
         FontFamily="Segoe UI Variable Display, Segoe UI"
         Closing="MainWindow_Closing">
 
+    <!-- Renklere DynamicResource ile başvurulur: tema (Koyu/Açık) çalışma anında değişebilir. -->
     <Window.Resources>
-        <!-- ModernButtonStyle App.xaml içinde tanımlıdır (Hakkında penceresiyle ortak) -->
-
-        <!-- DataGrid Koyu Tema Stilleri -->
+        <!-- DataGrid Tema Stilleri -->
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#181B22"/>
-            <Setter Property="Foreground" Value="#9CA3AF"/>
+            <Setter Property="Background" Value="{DynamicResource GridHeaderBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource GridHeaderFgBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Padding" Value="14,10"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="BorderBrush" Value="#2D3340"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
         </Style>
 
         <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="#1E222B"/>
-            <Setter Property="Foreground" Value="#F3F4F6"/>
+            <Setter Property="Background" Value="{DynamicResource GridRowBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource GridRowFgBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="BorderBrush" Value="#262B36"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource GridRowBorderBrush}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#262C38"/>
+                    <Setter Property="Background" Value="{DynamicResource GridRowHoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#283548"/>
-                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="Background" Value="{DynamicResource GridRowSelectedBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource GridRowSelectedFgBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -55,13 +54,28 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="SettingLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+
+        <Style x:Key="LegendDot" TargetType="Border">
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Margin" Value="12,0,5,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="24,18,24,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="215"/>
+            <RowDefinition Height="225"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -78,28 +92,28 @@
                     <TextBlock Text="Windows Screen Time"
                                FontSize="24"
                                FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <Border x:Name="StatusBadgeBorder"
-                            Background="#14332B"
-                            BorderBrush="#10B981"
+                            Background="{DynamicResource StatusActiveBgBrush}"
+                            BorderBrush="{DynamicResource StatusActiveBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="12"
                             Padding="10,3"
                             Margin="14,2,0,0"
                             VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
-                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#34D399" Margin="0,0,6,0"/>
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{DynamicResource StatusActiveDotBrush}" Margin="0,0,6,0"/>
                             <TextBlock x:Name="StatusBadgeText"
                                        Text="Aktif Takip Ediliyor"
                                        FontSize="11.5"
                                        FontWeight="SemiBold"
-                                       Foreground="#6EE7B7"/>
+                                       Foreground="{DynamicResource StatusActiveTextBrush}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
                 <TextBlock Text="Günlük aktif kullanım, boşta kalma süreleri ve oturum geçmişi"
                            FontSize="12.5"
-                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,3,0,0"/>
             </StackPanel>
 
@@ -123,6 +137,7 @@
                 <Button Content="Tepsiye Küçült"
                         Style="{StaticResource ModernButtonStyle}"
                         Margin="0,0,8,0"
+                        ToolTip="Pencereyi gizler; takip sistem tepsisinde devam eder (X tuşu da aynı işi yapar)"
                         Click="MinimizeToTrayButton_Click"/>
                 <Button x:Name="AboutButton"
                         Content="Hakkında"
@@ -144,8 +159,8 @@
 
             <!-- Kart 1: Bugünkü Aktif Süre -->
             <Border Grid.Column="0"
-                    Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderSubtleBrush}"
+                    Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="18,14">
@@ -153,24 +168,24 @@
                     <TextBlock Text="BUGÜNKÜ AKTİF SÜRE"
                                FontSize="11"
                                FontWeight="Bold"
-                               Foreground="#38BDF8"/>
+                               Foreground="{DynamicResource AccentBlueBrush}"/>
                     <TextBlock x:Name="TodayActiveText"
                                Text="0 dk"
                                FontSize="30"
                                FontWeight="Bold"
                                Margin="0,6,0,4"
-                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <TextBlock x:Name="TodayIdleSubtext"
                                Text="Boşta geçen: 0 dk  •  Toplam: 0 dk"
                                FontSize="12"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </StackPanel>
             </Border>
 
             <!-- Kart 2: Günlük Ortalama Kullanım -->
             <Border Grid.Column="2"
-                    Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderSubtleBrush}"
+                    Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="18,14">
@@ -178,24 +193,24 @@
                     <TextBlock Text="GÜNLÜK ORTALAMA KULLANIM"
                                FontSize="11"
                                FontWeight="Bold"
-                               Foreground="#818CF8"/>
+                               Foreground="{DynamicResource AccentIndigoBrush}"/>
                     <TextBlock x:Name="Avg7DaysText"
                                Text="0 dk"
                                FontSize="30"
                                FontWeight="Bold"
                                Margin="0,6,0,4"
-                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
                     <TextBlock x:Name="Avg30DaysSubtext"
                                Text="Son 7 gün ortalaması  •  30 Gün: 0 dk"
                                FontSize="12"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </StackPanel>
             </Border>
 
             <!-- Kart 3: Bugünkü İlk Açılış & Son Aktiflik -->
             <Border Grid.Column="4"
-                    Background="{StaticResource BgCardBrush}"
-                    BorderBrush="{StaticResource BorderSubtleBrush}"
+                    Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="18,14">
@@ -203,33 +218,33 @@
                     <TextBlock Text="BUGÜNKÜ OTURUM SAATLERİ"
                                FontSize="11"
                                FontWeight="Bold"
-                               Foreground="#34D399"/>
+                               Foreground="{DynamicResource AccentGreenBrush}"/>
                     <Grid Margin="0,8,0,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="İlk Açılış" FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBlock x:Name="TodayFirstSeenText" Text="--:--" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="İlk Açılış" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock x:Name="TodayFirstSeenText" Text="--:--" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="Son Aktiflik" FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBlock x:Name="TodayLastSeenText" Text="--:--" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Son Aktiflik" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock x:Name="TodayLastSeenText" Text="--:--" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}"/>
                         </StackPanel>
                     </Grid>
                     <TextBlock x:Name="TodayDateSubtext"
                                Text="--"
                                FontSize="12"
-                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <!-- 3. GÜN GÜN KULLANIM ÇUBUK GRAFİĞİ (BAR CHART) -->
+        <!-- 3. GÜN GÜN KULLANIM GRAFİĞİ (Aktif / Boşta / Uyku yığılı çubuk) -->
         <Border Grid.Row="2"
-                Background="{StaticResource BgCardBrush}"
-                BorderBrush="{StaticResource BorderSubtleBrush}"
+                Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="18,14"
@@ -246,19 +261,30 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="Günlük Kullanım Grafiği"
                                    FontSize="14.5"
-                                   FontWeight="SemiBold"/>
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"/>
                         <TextBlock x:Name="ChartMaxInfoText"
                                    Text=""
                                    FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"
                                    Margin="12,1,0,0"/>
-                    </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <!-- Gösterge -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,1,0,0">
+                            <Border Style="{StaticResource LegendDot}" Background="{DynamicResource ChartActiveBrush}"/>
+                            <TextBlock Text="Aktif" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <Border Style="{StaticResource LegendDot}" Background="{DynamicResource ChartIdleBrush}"/>
+                            <TextBlock Text="Boşta" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <Border Style="{StaticResource LegendDot}" Background="{DynamicResource ChartSleepBrush}"/>
+                            <TextBlock Text="Uykuda" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </WrapPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                         <Button x:Name="Range7Btn"
                                 Content="Son 7 Gün"
                                 Style="{StaticResource ModernButtonStyle}"
@@ -288,7 +314,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="3,0" ToolTip="{Binding TooltipText}">
+                            <Grid Margin="3,0" ToolTip="{Binding TooltipText}" Background="Transparent">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
@@ -298,19 +324,29 @@
                                 <TextBlock Grid.Row="0"
                                            Text="{Binding TopValueLabel}"
                                            FontSize="10"
-                                           Foreground="#9CA3AF"
+                                           Foreground="{DynamicResource ChartLabelBrush}"
                                            HorizontalAlignment="Center"
                                            Margin="0,0,0,3"/>
 
                                 <Border Grid.Row="1"
-                                        Background="#151820"
+                                        Background="{DynamicResource ChartTrackBrush}"
                                         CornerRadius="5"
-                                        VerticalAlignment="Stretch"
-                                        Padding="0">
-                                    <Border Height="{Binding BarHeight}"
-                                            VerticalAlignment="Bottom"
-                                            CornerRadius="5"
-                                            Background="{Binding BarBrush}"/>
+                                        VerticalAlignment="Stretch">
+                                    <!-- Yukarıdan aşağıya: Uyku, Boşta, Aktif (Aktif en altta) -->
+                                    <StackPanel VerticalAlignment="Bottom">
+                                        <Border Height="{Binding SleepHeight}"
+                                                CornerRadius="{Binding SleepCorner}"
+                                                Background="{DynamicResource ChartSleepBrush}"/>
+                                        <Border Height="{Binding IdleHeight}"
+                                                CornerRadius="{Binding IdleCorner}"
+                                                Background="{DynamicResource ChartIdleBrush}"/>
+                                        <Border Height="{Binding ActiveHeight}"
+                                                CornerRadius="{Binding ActiveCorner}"
+                                                Background="{Binding ActiveBrush}"/>
+                                        <Border Height="{Binding EmptyHeight}"
+                                                CornerRadius="5"
+                                                Background="{DynamicResource ChartEmptyBrush}"/>
+                                    </StackPanel>
                                 </Border>
 
                                 <TextBlock Grid.Row="2"
@@ -329,97 +365,140 @@
 
         <!-- 4. DETAYLI GÜNLÜK TABLO -->
         <Border Grid.Row="3"
-                Background="{StaticResource BgCardBrush}"
-                BorderBrush="{StaticResource BorderSubtleBrush}"
+                Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="2"
                 Margin="0,0,0,14">
-            <DataGrid x:Name="HistoryDataGrid"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      HeadersVisibility="Column"
-                      GridLinesVisibility="None"
-                      Background="Transparent"
-                      BorderThickness="0"
-                      RowHeaderWidth="0"
-                      SelectionMode="Single"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      CanUserResizeRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Tarih" Binding="{Binding DisplayDate}" Width="1.35*"/>
-                    <DataGridTextColumn Header="İlk Açılış" Binding="{Binding FirstSeenFormatted}" Width="0.8*"/>
-                    <DataGridTextColumn Header="Son Aktiflik" Binding="{Binding LastSeenFormatted}" Width="0.8*"/>
-                    <DataGridTextColumn Header="Aktif Süre" Binding="{Binding ActiveFormatted}" Width="1.05*"/>
-                    <DataGridTextColumn Header="Boşta Geçen Süre" Binding="{Binding IdleFormatted}" Width="1.05*"/>
-                    <DataGridTextColumn Header="Uykuda Geçen Süre" Binding="{Binding SleepFormatted}" Width="1.05*"/>
-                    <DataGridTextColumn Header="Toplam Açık" Binding="{Binding TotalFormatted}" Width="1.0*"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="16,10,12,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Günlük Geçmiş (son 30 gün)"
+                               FontSize="14.5"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <Button x:Name="ExportCsvButton"
+                            Grid.Column="1"
+                            Content="CSV Olarak Dışa Aktar"
+                            Style="{StaticResource ModernButtonStyle}"
+                            Padding="10,4"
+                            ToolTip="Kayıtlı tüm günleri Excel'de açılabilen bir CSV dosyasına kaydeder"
+                            Click="ExportCsvButton_Click"/>
+                </Grid>
+
+                <DataGrid x:Name="HistoryDataGrid"
+                          Grid.Row="1"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="None"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          RowHeaderWidth="0"
+                          SelectionMode="Single"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserResizeRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tarih" Binding="{Binding DisplayDate}" Width="1.35*"/>
+                        <DataGridTextColumn Header="İlk Açılış" Binding="{Binding FirstSeenFormatted}" Width="0.8*"/>
+                        <DataGridTextColumn Header="Son Aktiflik" Binding="{Binding LastSeenFormatted}" Width="0.8*"/>
+                        <DataGridTextColumn Header="Aktif Süre" Binding="{Binding ActiveFormatted}" Width="1.05*"/>
+                        <DataGridTextColumn Header="Boşta Geçen Süre" Binding="{Binding IdleFormatted}" Width="1.05*"/>
+                        <DataGridTextColumn Header="Uykuda Geçen Süre" Binding="{Binding SleepFormatted}" Width="1.05*"/>
+                        <DataGridTextColumn Header="Toplam Açık" Binding="{Binding TotalFormatted}" Width="1.0*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
         </Border>
 
         <!-- 5. ALT AYARLAR & ÇIKIŞ ÇUBUĞU -->
         <Border Grid.Row="4"
-                Background="{StaticResource BgCardBrush}"
-                BorderBrush="{StaticResource BorderSubtleBrush}"
+                Background="{DynamicResource BgCardBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
                 BorderThickness="1"
                 CornerRadius="10"
-                Padding="16,10">
+                Padding="16,8">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="28"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Windows Başlangıcında Çalıştır -->
-                <CheckBox x:Name="StartupCheckBox"
-                          Grid.Column="0"
-                          Content="Windows başladığında otomatik çalıştır"
-                          Foreground="{StaticResource TextPrimaryBrush}"
-                          VerticalAlignment="Center"
-                          VerticalContentAlignment="Center"
-                          FontSize="12.5"
-                          Cursor="Hand"
-                          Checked="StartupCheckBox_Changed"
-                          Unchecked="StartupCheckBox_Changed"/>
+                <!-- Dar pencerelerde alt satıra kayar -->
+                <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox x:Name="StartupCheckBox"
+                              Content="Windows ile başlat"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              VerticalAlignment="Center"
+                              VerticalContentAlignment="Center"
+                              FontSize="12.5"
+                              Cursor="Hand"
+                              Margin="0,4,24,4"
+                              ToolTip="Windows oturumu açıldığında uygulama sistem tepsisinde otomatik başlar"
+                              Checked="StartupCheckBox_Changed"
+                              Unchecked="StartupCheckBox_Changed"/>
 
-                <!-- Boşta Sayma Süresi Ayarı -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Boşta (Idle) sayma süresi:"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"
-                               FontSize="12.5"
-                               Margin="0,0,8,0"/>
-                    <ComboBox x:Name="IdleTimeoutComboBox"
-                              Width="95"
-                              SelectedValuePath="Tag"
-                              SelectionChanged="IdleTimeoutComboBox_SelectionChanged">
-                        <ComboBoxItem Content="1 dakika" Tag="1"/>
-                        <ComboBoxItem Content="3 dakika" Tag="3"/>
-                        <ComboBoxItem Content="5 dakika" Tag="5"/>
-                        <ComboBoxItem Content="10 dakika" Tag="10"/>
-                        <ComboBoxItem Content="15 dakika" Tag="15"/>
-                        <ComboBoxItem Content="30 dakika" Tag="30"/>
-                    </ComboBox>
-                </StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,24,4">
+                        <TextBlock Text="Boşta sayma:" Style="{StaticResource SettingLabel}"
+                                   ToolTip="Bu süre boyunca klavye ve fareye dokunulmazsa süre Boşta sayılır"/>
+                        <ComboBox x:Name="IdleTimeoutComboBox"
+                                  Width="90"
+                                  SelectionChanged="IdleTimeoutComboBox_SelectionChanged">
+                            <ComboBoxItem Content="1 dakika" Tag="1"/>
+                            <ComboBoxItem Content="3 dakika" Tag="3"/>
+                            <ComboBoxItem Content="5 dakika" Tag="5"/>
+                            <ComboBoxItem Content="10 dakika" Tag="10"/>
+                            <ComboBoxItem Content="15 dakika" Tag="15"/>
+                            <ComboBoxItem Content="30 dakika" Tag="30"/>
+                        </ComboBox>
+                    </StackPanel>
 
-                <!-- Sağ Alt Bilgilendirme & Çıkış -->
-                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="X tuşu pencereyi sistem tepsisine küçültür"
-                               FontSize="11.5"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"
-                               Margin="0,0,14,0"/>
-                    <Button Content="Uygulamadan Çık"
-                            Style="{StaticResource ModernButtonStyle}"
-                            BorderBrush="#7F1D1D"
-                            Foreground="#FCA5A5"
-                            Click="ExitAppButton_Click"/>
-                </StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,24,4">
+                        <TextBlock Text="Mola hatırlatma:" Style="{StaticResource SettingLabel}"
+                                   ToolTip="Bu kadar süre kesintisiz aktif kullanımdan sonra sistem tepsisinden mola bildirimi gösterilir. Boşta sayma süresi kadar ara vermek sayacı sıfırlar."/>
+                        <ComboBox x:Name="BreakReminderComboBox"
+                                  Width="90"
+                                  SelectionChanged="BreakReminderComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Kapalı" Tag="0"/>
+                            <ComboBoxItem Content="30 dakika" Tag="30"/>
+                            <ComboBoxItem Content="45 dakika" Tag="45"/>
+                            <ComboBoxItem Content="50 dakika" Tag="50"/>
+                            <ComboBoxItem Content="60 dakika" Tag="60"/>
+                            <ComboBoxItem Content="90 dakika" Tag="90"/>
+                            <ComboBoxItem Content="120 dakika" Tag="120"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,24,4">
+                        <TextBlock Text="Tema:" Style="{StaticResource SettingLabel}"/>
+                        <ComboBox x:Name="ThemeComboBox"
+                                  Width="80"
+                                  SelectionChanged="ThemeComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Koyu" Tag="Dark"/>
+                            <ComboBoxItem Content="Açık" Tag="Light"/>
+                            <ComboBoxItem Content="Sistem" Tag="System"/>
+                        </ComboBox>
+                    </StackPanel>
+                </WrapPanel>
+
+                <Button Grid.Column="1"
+                        Content="Uygulamadan Çık"
+                        Style="{StaticResource ModernButtonStyle}"
+                        BorderBrush="{DynamicResource DangerBorderBrush}"
+                        Foreground="{DynamicResource DangerFgBrush}"
+                        VerticalAlignment="Center"
+                        ToolTip="Takibi durdurur ve uygulamayı tamamen kapatır (X tuşu yalnızca tepsiye küçültür)"
+                        Click="ExitAppButton_Click"/>
             </Grid>
         </Border>
     </Grid>

@@ -13,6 +13,9 @@ namespace WindowScreenTime.Views;
 
 public partial class MainWindow : Window
 {
+    // Grafikte en yüksek çubuğun piksel yüksekliği
+    private const double MaxBarHeight = 112;
+
     private readonly DataStorageService _storage;
     private readonly UsageTrackerService _tracker;
     private int _selectedChartDays = 7;
@@ -30,6 +33,8 @@ public partial class MainWindow : Window
         RefreshDashboard();
 
         _tracker.StatsUpdated += OnTrackerStatsUpdated;
+        ThemeService.ThemeChanged += OnThemeChanged;
+        SourceInitialized += (_, _) => ThemeService.ApplyTitleBar(this);
     }
 
     private void LoadSettingsIntoUi()
@@ -38,24 +43,26 @@ public partial class MainWindow : Window
 
         StartupCheckBox.IsChecked = _storage.Settings.RunOnStartup;
 
-        string targetTag = _storage.Settings.IdleTimeoutMinutes.ToString(CultureInfo.InvariantCulture);
-        bool matched = false;
-        foreach (ComboBoxItem item in IdleTimeoutComboBox.Items)
-        {
-            if (item.Tag?.ToString() == targetTag)
-            {
-                IdleTimeoutComboBox.SelectedItem = item;
-                matched = true;
-                break;
-            }
-        }
-
-        if (!matched)
-        {
-            IdleTimeoutComboBox.SelectedIndex = 2; // 5 dakika
-        }
+        SelectComboByTag(IdleTimeoutComboBox,
+            _storage.Settings.IdleTimeoutMinutes.ToString(CultureInfo.InvariantCulture), fallbackIndex: 2);
+        SelectComboByTag(BreakReminderComboBox,
+            _storage.Settings.BreakReminderMinutes.ToString(CultureInfo.InvariantCulture), fallbackIndex: 3);
+        SelectComboByTag(ThemeComboBox, ThemeService.Normalize(_storage.Settings.Theme), fallbackIndex: 0);
 
         _isLoadingSettings = false;
+    }
+
+    private static void SelectComboByTag(System.Windows.Controls.ComboBox combo, string tag, int fallbackIndex)
+    {
+        foreach (ComboBoxItem item in combo.Items)
+        {
+            if (item.Tag?.ToString() == tag)
+            {
+                combo.SelectedItem = item;
+                return;
+            }
+        }
+        combo.SelectedIndex = fallbackIndex;
     }
 
     private void OnTrackerStatsUpdated()
@@ -69,6 +76,12 @@ public partial class MainWindow : Window
         });
     }
 
+    private void OnThemeChanged()
+    {
+        // Koddan hesaplanan fırçalar (grafikteki bugün çubuğu, etiketler) yeni temaya göre yenilenir
+        RefreshDashboard();
+    }
+
     protected override void OnActivated(EventArgs e)
     {
         base.OnActivated(e);
@@ -80,30 +93,18 @@ public partial class MainWindow : Window
     {
         DailyUsage today = _tracker.GetTodayUsage();
 
-        // 1. Durum rozeti
+        // 1. Durum rozeti (SetResourceReference: tema değişince renkler kendiliğinden güncellenir)
         if (_tracker.IsLockedOrSleeping)
         {
-            StatusBadgeBorder.Background = new SolidColorBrush(Color.FromRgb(55, 48, 28));
-            StatusBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
-            StatusDot.Fill = new SolidColorBrush(Color.FromRgb(251, 191, 36));
-            StatusBadgeText.Foreground = new SolidColorBrush(Color.FromRgb(253, 230, 138));
-            StatusBadgeText.Text = "Kilitli / Uykuda (Duraklatıldı)";
+            SetStatusBadge(warn: true, "Kilitli / Uykuda (Duraklatıldı)");
         }
         else if (_tracker.IsCurrentlyIdle)
         {
-            StatusBadgeBorder.Background = new SolidColorBrush(Color.FromRgb(55, 48, 28));
-            StatusBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
-            StatusDot.Fill = new SolidColorBrush(Color.FromRgb(251, 191, 36));
-            StatusBadgeText.Foreground = new SolidColorBrush(Color.FromRgb(253, 230, 138));
-            StatusBadgeText.Text = "Boşta (Idle Modu)";
+            SetStatusBadge(warn: true, "Boşta (Idle Modu)");
         }
         else
         {
-            StatusBadgeBorder.Background = new SolidColorBrush(Color.FromRgb(20, 51, 43));
-            StatusBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
-            StatusDot.Fill = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-            StatusBadgeText.Foreground = new SolidColorBrush(Color.FromRgb(110, 231, 183));
-            StatusBadgeText.Text = "Aktif Takip Ediliyor";
+            SetStatusBadge(warn: false, "Aktif Takip Ediliyor");
         }
 
         // 2. Üst özet kartları
@@ -131,6 +132,19 @@ public partial class MainWindow : Window
         HistoryDataGrid.ItemsSource = tableItems;
     }
 
+    private void SetStatusBadge(bool warn, string text)
+    {
+        string prefix = warn ? "StatusWarn" : "StatusActive";
+        StatusBadgeBorder.SetResourceReference(Border.BackgroundProperty, prefix + "BgBrush");
+        StatusBadgeBorder.SetResourceReference(Border.BorderBrushProperty, prefix + "BorderBrush");
+        StatusDot.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, prefix + "DotBrush");
+        StatusBadgeText.SetResourceReference(TextBlock.ForegroundProperty, prefix + "TextBrush");
+        StatusBadgeText.Text = text;
+    }
+
+    private Brush ThemeBrush(string key) =>
+        TryFindResource(key) as Brush ?? Brushes.Gray;
+
     private void UpdateChartSection()
     {
         HighlightSelectedRangeButton();
@@ -140,21 +154,26 @@ public partial class MainWindow : Window
             .OrderBy(d => d.DateKey)
             .ToList();
 
-        long maxSeconds = days.Count > 0 ? days.Max(d => d.ActiveSeconds) : 0;
-        if (maxSeconds < 3600)
-            maxSeconds = 3600; // Minimum 1 saatlik ölçek
+        // Ölçek: gösterilen günlerdeki en uzun "açık" süre (Aktif + Boşta + Uyku), en az 1 saat
+        long maxTotal = days.Count > 0 ? days.Max(d => d.ActiveSeconds + d.IdleSeconds + d.SleepSeconds) : 0;
+        if (maxTotal < 3600)
+            maxTotal = 3600;
 
-        ChartMaxInfoText.Text = $"(Tepe: {DailyUsage.FormatDuration(days.Max(d => d.ActiveSeconds))})";
+        long peakActive = days.Count > 0 ? days.Max(d => d.ActiveSeconds) : 0;
+        ChartMaxInfoText.Text = $"(En yüksek aktif: {DailyUsage.FormatDuration(peakActive)})";
 
         string todayKey = DateTime.Today.ToString("yyyy-MM-dd");
+        Brush activeBrush = ThemeBrush("ChartActiveBrush");
+        Brush todayActiveBrush = new LinearGradientBrush(Color.FromRgb(56, 189, 248), Color.FromRgb(99, 102, 241), 90);
+        Brush labelBrush = ThemeBrush("ChartLabelBrush");
+        Brush todayLabelBrush = ThemeBrush("ChartTodayLabelBrush");
+
         var chartItems = new List<ChartBarViewModel>(days.Count);
 
         for (int i = 0; i < days.Count; i++)
         {
             var d = days[i];
             bool isToday = d.DateKey == todayKey;
-            double ratio = maxSeconds > 0 ? (double)d.ActiveSeconds / maxSeconds : 0;
-            double barHeight = Math.Max(4, Math.Round(ratio * 108));
 
             string dayLabel = _selectedChartDays <= 14
                 ? d.ShortDayLabel
@@ -164,27 +183,14 @@ public partial class MainWindow : Window
                 ? $"{d.ActiveHours:0.0}s"
                 : "";
 
-            Brush barBrush = isToday
-                ? new LinearGradientBrush(Color.FromRgb(56, 189, 248), Color.FromRgb(99, 102, 241), 90)
-                : new SolidColorBrush(Color.FromRgb(59, 130, 246));
-
-            if (d.ActiveSeconds == 0)
-            {
-                barBrush = new SolidColorBrush(Color.FromRgb(38, 43, 54));
-            }
-
-            chartItems.Add(new ChartBarViewModel
-            {
-                DayLabel = dayLabel,
-                TopValueLabel = topLabel,
-                BarHeight = barHeight,
-                BarBrush = barBrush,
-                LabelBrush = isToday
-                    ? new SolidColorBrush(Color.FromRgb(56, 189, 248))
-                    : new SolidColorBrush(Color.FromRgb(156, 163, 175)),
-                LabelWeight = isToday ? FontWeights.Bold : FontWeights.Normal,
-                TooltipText = $"{d.DisplayDate}\nAktif: {d.ActiveFormatted}\nBoşta: {d.IdleFormatted}\nUykuda: {d.SleepFormatted}\nİlk Açılış: {d.FirstSeenFormatted} - Son: {d.LastSeenFormatted}"
-            });
+            var vm = ChartBarViewModel.Create(d.ActiveSeconds, d.IdleSeconds, d.SleepSeconds, maxTotal, MaxBarHeight);
+            vm.DayLabel = dayLabel;
+            vm.TopValueLabel = topLabel;
+            vm.ActiveBrush = isToday ? todayActiveBrush : activeBrush;
+            vm.LabelBrush = isToday ? todayLabelBrush : labelBrush;
+            vm.LabelWeight = isToday ? FontWeights.Bold : FontWeights.Normal;
+            vm.TooltipText = $"{d.DisplayDate}\nAktif: {d.ActiveFormatted}\nBoşta: {d.IdleFormatted}\nUykuda: {d.SleepFormatted}\nİlk Açılış: {d.FirstSeenFormatted} - Son: {d.LastSeenFormatted}";
+            chartItems.Add(vm);
         }
 
         ChartItemsControl.ItemsSource = chartItems;
@@ -192,12 +198,12 @@ public partial class MainWindow : Window
 
     private void HighlightSelectedRangeButton()
     {
-        var activeBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235));
-        var inactiveBrush = new SolidColorBrush(Color.FromRgb(38, 43, 54));
+        var normal = (Style)FindResource("ModernButtonStyle");
+        var selected = (Style)FindResource("SelectedButtonStyle");
 
-        Range7Btn.Background = _selectedChartDays == 7 ? activeBrush : inactiveBrush;
-        Range14Btn.Background = _selectedChartDays == 14 ? activeBrush : inactiveBrush;
-        Range30Btn.Background = _selectedChartDays == 30 ? activeBrush : inactiveBrush;
+        Range7Btn.Style = _selectedChartDays == 7 ? selected : normal;
+        Range14Btn.Style = _selectedChartDays == 14 ? selected : normal;
+        Range30Btn.Style = _selectedChartDays == 30 ? selected : normal;
     }
 
     private void Range7Btn_Click(object sender, RoutedEventArgs e)
@@ -236,6 +242,67 @@ public partial class MainWindow : Window
             _storage.Settings.IdleTimeoutMinutes = minutes;
             _storage.SaveSettings();
             _tracker.ProcessElapsedUntilNow();
+        }
+    }
+
+    private void BreakReminderComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+
+        if (BreakReminderComboBox.SelectedItem is ComboBoxItem item &&
+            int.TryParse(item.Tag?.ToString(), out int minutes))
+        {
+            _storage.Settings.BreakReminderMinutes = minutes;
+            _storage.SaveSettings();
+        }
+    }
+
+    private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+
+        if (ThemeComboBox.SelectedItem is ComboBoxItem item)
+        {
+            string theme = ThemeService.Normalize(item.Tag?.ToString());
+            _storage.Settings.Theme = theme;
+            _storage.SaveSettings();
+            ThemeService.Apply(theme);
+        }
+    }
+
+    private void ExportCsvButton_Click(object sender, RoutedEventArgs e)
+    {
+        _tracker.ProcessElapsedUntilNow();
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Kullanım geçmişini dışa aktar",
+            Filter = "CSV dosyası (*.csv)|*.csv",
+            DefaultExt = ".csv",
+            AddExtension = true,
+            FileName = $"WindowScreenTime_Gecmis_{DateTime.Today:yyyy-MM-dd}.csv"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+            return;
+
+        try
+        {
+            var days = _storage.GetAllRecordedDays();
+            CsvExportService.WriteCsv(dialog.FileName, days);
+            System.Windows.MessageBox.Show(
+                $"{days.Count} günlük kayıt dışa aktarıldı:\n{dialog.FileName}",
+                "Dışa Aktarma Tamamlandı",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Dosya kaydedilemedi:\n{ex.Message}\n\nDosya Excel'de açıksa kapatıp tekrar deneyin.",
+                "Dışa Aktarma Hatası",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
     }
 
@@ -302,13 +369,77 @@ public partial class MainWindow : Window
     }
 }
 
+/// <summary>
+/// Grafikteki tek bir günün yığılı çubuğu: alttan üste Aktif, Boşta, Uyku.
+/// </summary>
 public class ChartBarViewModel
 {
+    private const double SegmentRadius = 4;
+    private const double MinVisibleSegment = 2;
+    private const double EmptyBarHeight = 4;
+
     public string DayLabel { get; set; } = "";
     public string TopValueLabel { get; set; } = "";
-    public double BarHeight { get; set; }
-    public Brush BarBrush { get; set; } = Brushes.DodgerBlue;
+    public double ActiveHeight { get; set; }
+    public double IdleHeight { get; set; }
+    public double SleepHeight { get; set; }
+    public double EmptyHeight { get; set; }
+    public CornerRadius ActiveCorner { get; set; }
+    public CornerRadius IdleCorner { get; set; }
+    public CornerRadius SleepCorner { get; set; }
+    public Brush ActiveBrush { get; set; } = Brushes.DodgerBlue;
     public Brush LabelBrush { get; set; } = Brushes.Gray;
     public FontWeight LabelWeight { get; set; } = FontWeights.Normal;
     public string TooltipText { get; set; } = "";
+
+    /// <summary>
+    /// Süreleri piksel yüksekliklerine çevirir. Sıfırdan büyük ama çok küçük dilimler en az birkaç piksel
+    /// gösterilir. En üstteki dilimin üst köşeleri, en alttakinin alt köşeleri yuvarlatılır.
+    /// </summary>
+    public static ChartBarViewModel Create(long activeSec, long idleSec, long sleepSec, long scaleSec, double maxHeight)
+    {
+        var vm = new ChartBarViewModel();
+        double Scale(long s) => s <= 0 || scaleSec <= 0 ? 0 : Math.Max(MinVisibleSegment, Math.Round(s / (double)scaleSec * maxHeight));
+
+        vm.ActiveHeight = Scale(activeSec);
+        vm.IdleHeight = Scale(idleSec);
+        vm.SleepHeight = Scale(sleepSec);
+
+        // Yuvarlamalar toplamı taşırırsa en büyük dilimden kırp
+        double total = vm.ActiveHeight + vm.IdleHeight + vm.SleepHeight;
+        if (total > maxHeight)
+        {
+            double excess = total - maxHeight;
+            if (vm.SleepHeight >= vm.IdleHeight && vm.SleepHeight >= vm.ActiveHeight) vm.SleepHeight -= excess;
+            else if (vm.IdleHeight >= vm.ActiveHeight) vm.IdleHeight -= excess;
+            else vm.ActiveHeight -= excess;
+        }
+
+        if (vm.ActiveHeight + vm.IdleHeight + vm.SleepHeight <= 0)
+        {
+            vm.EmptyHeight = EmptyBarHeight;
+            return vm;
+        }
+
+        // Görünür dilimler yukarıdan aşağıya: Uyku, Boşta, Aktif
+        var visible = new List<string>();
+        if (vm.SleepHeight > 0) visible.Add("sleep");
+        if (vm.IdleHeight > 0) visible.Add("idle");
+        if (vm.ActiveHeight > 0) visible.Add("active");
+
+        CornerRadius CornerFor(string name)
+        {
+            bool isTop = visible[0] == name;
+            bool isBottom = visible[^1] == name;
+            double top = isTop ? SegmentRadius : 0;
+            double bottom = isBottom ? SegmentRadius : 0;
+            return new CornerRadius(top, top, bottom, bottom);
+        }
+
+        if (vm.SleepHeight > 0) vm.SleepCorner = CornerFor("sleep");
+        if (vm.IdleHeight > 0) vm.IdleCorner = CornerFor("idle");
+        if (vm.ActiveHeight > 0) vm.ActiveCorner = CornerFor("active");
+
+        return vm;
+    }
 }

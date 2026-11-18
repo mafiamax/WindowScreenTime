@@ -3,53 +3,58 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-        <SolidColorBrush x:Key="BgPrimaryBrush" Color="#14161B"/>
-        <SolidColorBrush x:Key="BgCardBrush" Color="#1E222B"/>
-        <SolidColorBrush x:Key="BgCardHoverBrush" Color="#262B36"/>
-        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#2D3340"/>
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F3F4F6"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#9CA3AF"/>
-        <SolidColorBrush x:Key="AccentBlueBrush" Color="#38BDF8"/>
-        <SolidColorBrush x:Key="AccentIndigoBrush" Color="#6366F1"/>
-        <SolidColorBrush x:Key="AccentGreenBrush" Color="#34D399"/>
-        <SolidColorBrush x:Key="AccentAmberBrush" Color="#FBBF24"/>
+        <ResourceDictionary>
+            <!-- Renkler tema sözlüğünden gelir (Themes/Dark.xaml veya Themes/Light.xaml).
+                 ThemeService bu ilk birleştirilmiş sözlüğü çalışma anında değiştirir; bu yüzden
+                 renklere her yerde DynamicResource ile başvurulmalıdır. -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Dark.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-        <!-- Modern Yuvarlatılmış Buton Stili (tüm pencerelerde ortak) -->
-        <Style x:Key="ModernButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#262B36"/>
-            <Setter Property="Foreground" Value="#F3F4F6"/>
-            <Setter Property="BorderBrush" Value="#374151"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="12.5"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#323947"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#38BDF8"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1E293B"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="border" Property="Opacity" Value="0.55"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <!-- Modern Yuvarlatılmış Buton Stili (tüm pencerelerde ortak) -->
+            <Style x:Key="ModernButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="12,6"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverBgBrush}"/>
+                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource ButtonHoverBorderBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonPressedBgBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="border" Property="Opacity" Value="0.55"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Grafik aralığı gibi seçili durumdaki düğmeler -->
+            <Style x:Key="SelectedButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+                <Setter Property="Background" Value="{DynamicResource ButtonSelectedBgBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource ButtonSelectedFgBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ButtonSelectedBgBrush}"/>
+            </Style>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

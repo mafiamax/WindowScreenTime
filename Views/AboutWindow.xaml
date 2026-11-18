@@ -10,12 +10,12 @@
         Background="Transparent"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Foreground="{StaticResource TextPrimaryBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
         FontFamily="Segoe UI Variable Display, Segoe UI"
         KeyDown="Window_KeyDown">
 
-    <Border Background="{StaticResource BgPrimaryBrush}"
-            BorderBrush="{StaticResource BorderSubtleBrush}"
+    <Border Background="{DynamicResource BgPrimaryBrush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
             BorderThickness="1"
             CornerRadius="12"
             Margin="12">
@@ -30,7 +30,7 @@
                            Margin="20,14,0,0"
                            FontSize="12"
                            FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <Button Content="✕"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Top"
@@ -61,7 +61,7 @@
                         <TextBlock x:Name="VersionText"
                                    Text="Sürüm"
                                    FontSize="12.5"
-                                   Foreground="{StaticResource AccentBlueBrush}"
+                                   Foreground="{DynamicResource AccentBlueBrush}"
                                    Margin="0,2,0,0"/>
                     </StackPanel>
                 </StackPanel>
@@ -70,13 +70,13 @@
                 <TextBlock TextWrapping="Wrap"
                            FontSize="12.5"
                            LineHeight="19"
-                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,16"
                            Text="Bilgisayarınızda aktif, boşta ve uykuda geçen süreyi sistem tepsisinden sessizce takip eder; günlük özetleri, grafikleri ve oturum saatlerini gösterir. Tüm veriler yalnızca bu bilgisayarda saklanır, hiçbir yere gönderilmez."/>
 
                 <!-- Künye -->
-                <Border Background="{StaticResource BgCardBrush}"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                <Border Background="{DynamicResource BgCardBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="10"
                         Padding="16,12"
@@ -85,7 +85,7 @@
                         <TextBlock Text="KÜNYE"
                                    FontSize="11"
                                    FontWeight="Bold"
-                                   Foreground="#818CF8"
+                                   Foreground="{DynamicResource AccentIndigoBrush}"
                                    Margin="0,0,0,8"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -101,12 +101,12 @@
                             <Grid.Resources>
                                 <Style x:Key="LabelText" TargetType="TextBlock">
                                     <Setter Property="FontSize" Value="12.5"/>
-                                    <Setter Property="Foreground" Value="#9CA3AF"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                     <Setter Property="Margin" Value="0,3,16,3"/>
                                 </Style>
                                 <Style x:Key="ValueText" TargetType="TextBlock">
                                     <Setter Property="FontSize" Value="12.5"/>
-                                    <Setter Property="Foreground" Value="#F3F4F6"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
                                     <Setter Property="Margin" Value="0,3,0,3"/>
                                     <Setter Property="TextWrapping" Value="Wrap"/>
                                 </Style>
@@ -121,7 +121,7 @@
                             <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource LabelText}" Text="Kaynak Kod"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueText}">
                                 <Hyperlink x:Name="RepoLink"
-                                           Foreground="#38BDF8"
+                                           Foreground="{DynamicResource AccentBlueBrush}"
                                            RequestNavigate="RepoLink_RequestNavigate">
                                     <Run x:Name="RepoLinkText" Text="github.com/mafiamax/WindowScreenTime"/>
                                 </Hyperlink>

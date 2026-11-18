@@ -40,8 +40,16 @@ public class UsageTrackerService : IDisposable
     // bu andan daha geriye gitmez (uyku veya önceki boşta süresine taşmamak için).
     private DateTime? _activeRunStart;
     private int _activeTicksSinceLastSave;
+    private DateTime? _lastBreakReminderAt;
 
     public event Action? StatsUpdated;
+
+    /// <summary>
+    /// Kesintisiz Aktif kullanım, ayarlanan mola süresine ulaştığında tetiklenir (parametre: kesintisiz
+    /// aktif süre). Mola devam etmezse aynı süre aralığıyla tekrar tetiklenir. Boşta eşiği kadar ara
+    /// verilmesi, kilitleme veya uyku kesintisiz süreyi sıfırlar.
+    /// </summary>
+    public event Action<TimeSpan>? BreakReminderDue;
 
     public bool IsCurrentlyIdle => _isCurrentlyIdle;
     public bool IsLockedOrSleeping => _isPaused;
@@ -171,6 +179,7 @@ public class UsageTrackerService : IDisposable
         else
         {
             _activeRunStart ??= start;
+            CheckBreakReminder(now);
             _activeTicksSinceLastSave++;
 
             // Aktif kullanımda her 12 adımda bir (2 dakikada bir) veya Idle'dan çıkınca kaydet
@@ -181,6 +190,24 @@ public class UsageTrackerService : IDisposable
             }
 
             StatsUpdated?.Invoke();
+        }
+    }
+
+    private void CheckBreakReminder(DateTime now)
+    {
+        int minutes = _storage.Settings.BreakReminderMinutes;
+        if (minutes <= 0 || !_activeRunStart.HasValue)
+            return;
+
+        // Hatırlatma bu kesintisiz dilimde zaten gösterildiyse sayaç o andan başlar
+        DateTime since = _lastBreakReminderAt.HasValue && _lastBreakReminderAt.Value > _activeRunStart.Value
+            ? _lastBreakReminderAt.Value
+            : _activeRunStart.Value;
+
+        if (now - since >= TimeSpan.FromMinutes(minutes))
+        {
+            _lastBreakReminderAt = now;
+            BreakReminderDue?.Invoke(now - _activeRunStart.Value);
         }
     }
 
