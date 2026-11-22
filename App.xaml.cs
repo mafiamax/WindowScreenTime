@@ -53,6 +53,9 @@ public partial class App : System.Windows.Application
         }
 
         Storage = new DataStorageService();
+        // Eski sürümlerin Başlangıç klasörüne koyduğu .cmd dosyasını (oturum açılışında komut penceresi
+        // gösteriyordu) kısayola çevir; kısayolun hedefi silinmişse onar.
+        StartupShortcutService.MigrateAndRepair();
         ThemeService.Apply(Storage.Settings.Theme);
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
@@ -99,11 +102,11 @@ public partial class App : System.Windows.Application
             // Kısayolları temizle
             string desktopLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "WindowScreenTime.lnk");
             string startMenuLnk = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "WindowScreenTime.lnk");
-            string startupCmd = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "WindowScreenTime.cmd");
-
             if (File.Exists(desktopLnk)) File.Delete(desktopLnk);
             if (File.Exists(startMenuLnk)) File.Delete(startMenuLnk);
-            if (File.Exists(startupCmd)) File.Delete(startupCmd);
+
+            // Başlangıç klasöründeki kısayol (.lnk) ve eski sürümlerden kalan .cmd dosyası
+            StartupShortcutService.SetEnabled(false);
 
             // Program Ekle/Kaldır kaydını sil
             Registry.CurrentUser.DeleteSubKeyTree(UninstallRegKey, throwOnMissingSubKey: false);

@@ -12,6 +12,13 @@ Yazım kuralları:
 
 ---
 
+## Sürüm 1.2.2 (22 Kasım 2026)
+
+Düzeltmeler:
+- Windows ile otomatik başlarken ekranda bir anlığına açılıp kapanan komut penceresi artık görünmüyor (mevcut ayar güncellemeyle kendiliğinden yeni yönteme geçer)
+
+---
+
 ## Sürüm 1.2.1 (18 Kasım 2026)
 
 Düzeltmeler:

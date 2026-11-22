@@ -247,46 +247,8 @@ public class DataStorageService
         }
     }
 
-    private static string GetStartupLauncherPath()
-    {
-        string startupDir = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
-        return Path.Combine(startupDir, "WindowScreenTime.cmd");
-    }
+    // Başlangıç klasörü kısayolu StartupShortcutService içinde yönetilir.
+    private static bool IsStartupShortcutPresent() => StartupShortcutService.IsEnabled();
 
-    private static bool IsStartupShortcutPresent()
-    {
-        try
-        {
-            return File.Exists(GetStartupLauncherPath());
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static void UpdateStartupLauncher(bool enable)
-    {
-        try
-        {
-            string launcherPath = GetStartupLauncherPath();
-            if (enable)
-            {
-                string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
-                if (!string.IsNullOrWhiteSpace(exePath))
-                {
-                    string content = $"@echo off\r\nstart \"\" \"{exePath}\" --minimized\r\n";
-                    File.WriteAllText(launcherPath, content);
-                }
-            }
-            else if (File.Exists(launcherPath))
-            {
-                File.Delete(launcherPath);
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Startup update error: {ex.Message}");
-        }
-    }
+    private static void UpdateStartupLauncher(bool enable) => StartupShortcutService.SetEnabled(enable);
 }
