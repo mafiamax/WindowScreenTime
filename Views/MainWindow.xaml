@@ -386,13 +386,23 @@
                                FontSize="14.5"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center"/>
-                    <Button x:Name="ExportCsvButton"
-                            Grid.Column="1"
-                            Content="CSV Olarak Dışa Aktar"
-                            Style="{StaticResource ModernButtonStyle}"
-                            Padding="10,4"
-                            ToolTip="Kayıtlı tüm günleri Excel'de açılabilen bir CSV dosyasına kaydeder"
-                            Click="ExportCsvButton_Click"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button x:Name="ResetHistoryButton"
+                                Content="Geçmişi Sıfırla"
+                                Style="{StaticResource ModernButtonStyle}"
+                                BorderBrush="{DynamicResource DangerBorderBrush}"
+                                Foreground="{DynamicResource DangerFgBrush}"
+                                Padding="10,4"
+                                Margin="0,0,8,0"
+                                ToolTip="Temiz başlangıç: bugün dahil tüm kayıtlı günleri siler ve sayaçları sıfırdan başlatır. Silmeden önce onay sorulur ve geçmiş veri klasörüne yedeklenir; ayarlar korunur."
+                                Click="ResetHistoryButton_Click"/>
+                        <Button x:Name="ExportCsvButton"
+                                Content="CSV Olarak Dışa Aktar"
+                                Style="{StaticResource ModernButtonStyle}"
+                                Padding="10,4"
+                                ToolTip="Kayıtlı tüm günleri Excel'de açılabilen bir CSV dosyasına kaydeder"
+                                Click="ExportCsvButton_Click"/>
+                    </StackPanel>
                 </Grid>
 
                 <DataGrid x:Name="HistoryDataGrid"

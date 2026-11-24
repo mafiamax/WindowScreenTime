@@ -391,6 +391,48 @@ public class UsageTrackerService : IDisposable
         FlushCurrentState();
     }
 
+    /// <summary>
+    /// Tüm kullanım geçmişini yedekleyip siler ve sayaçları şu andan itibaren sıfırdan başlatır.
+    /// Kesintisiz aktif süre (mola hatırlatıcısı) da sıfırlanır.
+    /// </summary>
+    /// <returns>Yedek dosyasının tam yolu.</returns>
+    public string ResetHistory()
+    {
+        // Silmeden önce o ana kadarki süreyi işle: yedek en güncel hali içersin
+        if (_isPaused)
+        {
+            AllocatePausedTimeUntil(DateTime.Now, Environment.TickCount64);
+        }
+        else
+        {
+            ProcessElapsedUntilNow();
+        }
+
+        string backupPath = _storage.ResetAllUsage();
+
+        DateTime now = DateTime.Now;
+        _lastTickTime = now;
+        _lastTickMono = Environment.TickCount64;
+        if (_isPaused)
+        {
+            _pauseStartMono = _lastTickMono;
+        }
+        _activeRunStart = null;
+        _lastBreakReminderAt = null;
+        _activeTicksSinceLastSave = 0;
+
+        if (!_isPaused)
+        {
+            var today = _storage.GetOrCreateDay(now);
+            today.FirstSeen = now;
+            today.LastSeen = now;
+        }
+
+        _storage.SaveUsage();
+        StatsUpdated?.Invoke();
+        return backupPath;
+    }
+
     public DailyUsage GetTodayUsage()
     {
         return _storage.GetOrCreateDay(DateTime.Today);

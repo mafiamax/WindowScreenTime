@@ -205,6 +205,45 @@ public class DataStorageService
         }
     }
 
+    /// <summary>
+    /// "Geçmişi Sıfırla": tüm günlük kayıtları (bugün dahil) siler. Silmeden önce bellekteki geçmişin
+    /// tamamı <c>usage_history.reset-&lt;tarih&gt;.json</c> olarak veri klasörüne yedeklenir; yedek
+    /// yazılamazsa hiçbir şey silinmez. Ayarlar korunur, yalnızca "Olay Günlüğü tarandı" bilgisi sıfırlanır.
+    /// </summary>
+    /// <returns>Yedek dosyasının tam yolu.</returns>
+    /// <exception cref="InvalidOperationException">Geçmiş dosyası okunamadığı için kayıt kapalıysa.</exception>
+    public string ResetAllUsage()
+    {
+        lock (_syncLock)
+        {
+            if (_usageSaveBlocked)
+            {
+                throw new InvalidOperationException(
+                    "Geçmiş dosyası okunamadığı ve yedeklenemediği için sıfırlama yapılamıyor.");
+            }
+
+            var ordered = _usageByDate.Values.OrderByDescending(x => x.DateKey).ToList();
+            string json = JsonSerializer.Serialize(ordered, JsonOptions);
+            string backupPath = Path.Combine(_dataDir, $"usage_history.reset-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+
+            // FileMode.CreateNew: aynı isimde bir yedek varsa üzerine yazmaz, hata verir (silme iptal olur).
+            using (var stream = new FileStream(backupPath, FileMode.CreateNew, FileAccess.Write))
+            using (var writer = new StreamWriter(stream))
+            {
+                writer.Write(json);
+            }
+
+            _usageByDate = new Dictionary<string, DailyUsage>();
+            SaveUsage();
+
+            // Yalnızca ayar dosyası yazılır; Başlangıç klasörü kısayoluna dokunulmaz.
+            Settings.HasImportedEventLog = false;
+            WriteSettingsFile();
+
+            return backupPath;
+        }
+    }
+
     public void SaveUsage()
     {
         lock (_syncLock)
@@ -237,6 +276,21 @@ public class DataStorageService
             try
             {
                 UpdateStartupLauncher(Settings.RunOnStartup);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Startup shortcut error: {ex.Message}");
+            }
+            WriteSettingsFile();
+        }
+    }
+
+    private void WriteSettingsFile()
+    {
+        lock (_syncLock)
+        {
+            try
+            {
                 string json = JsonSerializer.Serialize(Settings, JsonOptions);
                 File.WriteAllText(_settingsFilePath, json);
             }

@@ -12,6 +12,13 @@ Yazım kuralları:
 
 ---
 
+## Yayınlanmamış
+
+Yenilikler:
+- "Geçmişi Sıfırla" düğmesi: bugün dahil tüm kayıtlı günleri silip sayaçları sıfırdan başlatır (temiz başlangıç). Silmeden önce onay sorulur, eski geçmiş veri klasörüne yedeklenir ve ayarlar korunur
+
+---
+
 ## Sürüm 1.2.2 (22 Kasım 2026)
 
 Düzeltmeler:

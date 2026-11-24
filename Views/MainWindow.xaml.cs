@@ -306,6 +306,44 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ResetHistoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        var answer = System.Windows.MessageBox.Show(
+            "Bugün dahil kayıtlı tüm günler silinecek ve sayaçlar şu andan itibaren sıfırdan başlayacak.\n\n" +
+            "• Silinen geçmiş, veri klasörüne yedek dosyası olarak kaydedilir.\n" +
+            "• Ayarlarınız (tema, boşta sayma, mola hatırlatma, Windows ile başlat) değişmez.\n" +
+            "• İsterseniz geçmiş günleri daha sonra \"Olay Günlüğünü Tara\" ile yeniden doldurabilirsiniz.\n\n" +
+            "Devam etmek istiyor musunuz?",
+            "Geçmişi Sıfırla",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (answer != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            string backupPath = _tracker.ResetHistory();
+            RefreshDashboard();
+            System.Windows.MessageBox.Show(
+                "Kullanım geçmişi sıfırlandı; sayaçlar şu andan itibaren yeniden başladı.\n\n" +
+                $"Eski geçmişin yedeği:\n{backupPath}\n\n" +
+                "(Veri klasörüne Hakkında penceresindeki \"Veri Klasörünü Aç\" ile ulaşabilirsiniz.)",
+                "Sıfırlama Tamamlandı",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Geçmiş sıfırlanamadı; hiçbir kayıt silinmedi.\n\n{ex.Message}",
+                "Sıfırlama Hatası",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
     private void AboutButton_Click(object sender, RoutedEventArgs e)
     {
         if (System.Windows.Application.Current is App app)
