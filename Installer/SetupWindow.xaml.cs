@@ -2,6 +2,9 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text;
 using System.Windows;
 using Microsoft.Win32;
 
@@ -48,24 +51,7 @@ public partial class SetupWindow : Window
         try
         {
             StatusText.Text = "Açık olan eski sürüm kapatılıyor...";
-            await Task.Run(() =>
-            {
-                int myPid = Environment.ProcessId;
-                foreach (var proc in Process.GetProcessesByName("WindowScreenTime"))
-                {
-                    if (proc.Id != myPid)
-                    {
-                        try
-                        {
-                            proc.Kill();
-                            proc.WaitForExit(3000);
-                        }
-                        catch
-                        {
-                        }
-                    }
-                }
-            });
+            await Task.Run(CloseRunningApp);
 
             StatusText.Text = "Dosyalar kurulum dizinine kopyalanıyor...";
             await Task.Run(() =>
@@ -136,6 +122,49 @@ public partial class SetupWindow : Window
         }
     }
 
+    // Ana uygulamadaki Services/InstanceSignals.cs ile aynı ad olmalıdır.
+    private const string ExitEventName = @"Local\WindowScreenTime_Exit";
+
+    /// <summary>
+    /// Çalışan WindowScreenTime'dan önce düzgün kapanmasını ister (son kullanım süresi kaydedilir ve
+    /// tepsi simgesi kaldırılır). 5 saniyede kapanmazsa veya sinyali tanımayan eski bir sürümse zorla kapatır.
+    /// </summary>
+    private static void CloseRunningApp()
+    {
+        bool signaled = false;
+        try
+        {
+            if (EventWaitHandle.TryOpenExisting(ExitEventName, out var exitEvent))
+            {
+                using (exitEvent)
+                {
+                    signaled = exitEvent.Set();
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        int myPid = Environment.ProcessId;
+        foreach (var proc in Process.GetProcessesByName("WindowScreenTime"))
+        {
+            if (proc.Id == myPid)
+                continue;
+            try
+            {
+                if (!signaled || !proc.WaitForExit(5000))
+                {
+                    proc.Kill();
+                    proc.WaitForExit(3000);
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
     private void RegisterUninstaller(string installedExe)
     {
         try
@@ -180,35 +209,60 @@ public partial class SetupWindow : Window
         return own == null ? "1.0.0" : $"{own.Major}.{own.Minor}.{Math.Max(0, own.Build)}";
     }
 
+    /// <summary>
+    /// Masaüstü / Başlat menüsü kısayolunu Windows'un kendi IShellLink COM arayüzüyle oluşturur
+    /// (ana uygulamadaki StartupShortcutService ile aynı yöntem; WScript.Shell kullanılmaz — KURAL 2).
+    /// </summary>
     private static void CreateShortcut(string shortcutPath, string targetPath, string workingDir, string description)
     {
+        IShellLinkW? link = null;
         try
         {
-            Type? shellType = Type.GetTypeFromProgID("WScript.Shell");
-            if (shellType == null) return;
-
-            object? shell = Activator.CreateInstance(shellType);
-            if (shell == null) return;
-
-            object? shortcut = shellType.InvokeMember(
-                "CreateShortcut",
-                BindingFlags.InvokeMethod,
-                null,
-                shell,
-                new object[] { shortcutPath });
-
-            if (shortcut == null) return;
-
-            Type scType = shortcut.GetType();
-            scType.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { targetPath });
-            scType.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { workingDir });
-            scType.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { description });
-            scType.InvokeMember("IconLocation", BindingFlags.SetProperty, null, shortcut, new object[] { $"{targetPath},0" });
-            scType.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
+            link = (IShellLinkW)new ShellLink();
+            link.SetPath(targetPath);
+            link.SetWorkingDirectory(workingDir);
+            link.SetDescription(description);
+            link.SetIconLocation(targetPath, 0);
+            ((IPersistFile)link).Save(shortcutPath, true);
         }
         catch
         {
             // Yoksay
         }
+        finally
+        {
+            if (link != null)
+                Marshal.FinalReleaseComObject(link);
+        }
+    }
+
+    // --- Windows kabuk kısayolu (IShellLink) COM tanımları ---
+
+    [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
+    private class ShellLink
+    {
+    }
+
+    [ComImport, InterfaceType(ComInterfaceType.InterfaceIsIUnknown), Guid("000214F9-0000-0000-C000-000000000046")]
+    private interface IShellLinkW
+    {
+        void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszFile, int cch, IntPtr pfd, uint fFlags);
+        void GetIDList(out IntPtr ppidl);
+        void SetIDList(IntPtr pidl);
+        void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, int cch);
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszDir, int cch);
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string pszDir);
+        void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszArgs, int cch);
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string pszArgs);
+        void GetHotkey(out short pwHotkey);
+        void SetHotkey(short wHotkey);
+        void GetShowCmd(out int piShowCmd);
+        void SetShowCmd(int iShowCmd);
+        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszIconPath, int cch, out int piIcon);
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string pszIconPath, int iIcon);
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pszPathRel, int dwReserved);
+        void Resolve(IntPtr hwnd, int fFlags);
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
     }
 }

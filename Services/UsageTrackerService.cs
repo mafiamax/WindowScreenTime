@@ -51,6 +51,11 @@ public class UsageTrackerService : IDisposable
     /// </summary>
     public event Action<TimeSpan>? BreakReminderDue;
 
+    /// <summary>
+    /// Bugünkü Aktif süre günlük hedefe ulaştığında günde bir kez tetiklenir (parametre: bugünkü Aktif süre).
+    /// </summary>
+    public event Action<TimeSpan>? DailyGoalReached;
+
     public bool IsCurrentlyIdle => _isCurrentlyIdle;
     public bool IsLockedOrSleeping => _isPaused;
 
@@ -180,6 +185,7 @@ public class UsageTrackerService : IDisposable
         {
             _activeRunStart ??= start;
             CheckBreakReminder(now);
+            CheckDailyGoal(now);
             _activeTicksSinceLastSave++;
 
             // Aktif kullanımda her 12 adımda bir (2 dakikada bir) veya Idle'dan çıkınca kaydet
@@ -199,16 +205,65 @@ public class UsageTrackerService : IDisposable
         if (minutes <= 0 || !_activeRunStart.HasValue)
             return;
 
-        // Hatırlatma bu kesintisiz dilimde zaten gösterildiyse sayaç o andan başlar
-        DateTime since = _lastBreakReminderAt.HasValue && _lastBreakReminderAt.Value > _activeRunStart.Value
-            ? _lastBreakReminderAt.Value
-            : _activeRunStart.Value;
+        // Susturulduysa hatırlatma gösterilmez
+        DateTime? mutedUntil = _storage.Settings.BreakReminderMutedUntil;
+        if (mutedUntil.HasValue && now < mutedUntil.Value)
+            return;
+
+        // Sayaç en geç şu andan başlar: kesintisiz dilimin başı, bu dilimde gösterilen son hatırlatma
+        // veya susturmanın bittiği an (susturma biter bitmez birikmiş süre için hemen uyarı verilmez).
+        DateTime since = _activeRunStart.Value;
+        if (_lastBreakReminderAt.HasValue && _lastBreakReminderAt.Value > since)
+            since = _lastBreakReminderAt.Value;
+        if (mutedUntil.HasValue && mutedUntil.Value > since)
+            since = mutedUntil.Value;
 
         if (now - since >= TimeSpan.FromMinutes(minutes))
         {
             _lastBreakReminderAt = now;
             BreakReminderDue?.Invoke(now - _activeRunStart.Value);
         }
+    }
+
+    /// <summary>Mola hatırlatıcısı şu an susturulmuşsa susturmanın bittiği an; değilse null.</summary>
+    public DateTime? BreakReminderMutedUntil
+    {
+        get
+        {
+            DateTime? until = _storage.Settings.BreakReminderMutedUntil;
+            return until.HasValue && until.Value > DateTime.Now ? until : null;
+        }
+    }
+
+    /// <summary>Mola hatırlatıcısını verilen ana kadar susturur; null susturmayı kaldırır.</summary>
+    public void MuteBreakReminderUntil(DateTime? until)
+    {
+        _storage.Settings.BreakReminderMutedUntil = until;
+        _storage.SaveSettingsFileOnly();
+        StatsUpdated?.Invoke();
+    }
+
+    /// <summary>
+    /// Bugünkü Aktif süre günlük hedefe ulaştığında günde bir kez bildirim ister. Bildirim günü ayarlara
+    /// yazılır (günde en fazla bir disk yazımı); uygulama yeniden başlasa da aynı gün tekrar bildirilmez.
+    /// </summary>
+    private void CheckDailyGoal(DateTime now)
+    {
+        int goalMinutes = _storage.Settings.DailyGoalMinutes;
+        if (goalMinutes <= 0)
+            return;
+
+        string key = now.ToString("yyyy-MM-dd");
+        if (_storage.Settings.DailyGoalNotifiedDate == key)
+            return;
+
+        DailyUsage today = _storage.GetOrCreateDay(now);
+        if (today.ActiveSeconds < goalMinutes * 60L)
+            return;
+
+        _storage.Settings.DailyGoalNotifiedDate = key;
+        _storage.SaveSettingsFileOnly();
+        DailyGoalReached?.Invoke(TimeSpan.FromSeconds(today.ActiveSeconds));
     }
 
     private void UpdatePauseState()

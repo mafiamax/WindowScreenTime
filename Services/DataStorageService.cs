@@ -285,6 +285,12 @@ public class DataStorageService
         }
     }
 
+    /// <summary>
+    /// Yalnızca settings.json'u yazar; Başlangıç klasörü kısayoluna dokunmaz. Kullanıcının "Windows ile
+    /// başlat" ayarıyla ilgisi olmayan otomatik kayıtlarda (mola susturma, günlük hedef bildirimi) kullanılır.
+    /// </summary>
+    public void SaveSettingsFileOnly() => WriteSettingsFile();
+
     private void WriteSettingsFile()
     {
         lock (_syncLock)

@@ -18,7 +18,13 @@ public partial class MainWindow : Window
 
     private readonly DataStorageService _storage;
     private readonly UsageTrackerService _tracker;
+    private static readonly CultureInfo TrCulture = new("tr-TR");
+
     private int _selectedChartDays = 7;
+    // Tabloda gösterilen dönem: null = son 30 gün, "yyyy-MM" = o ay
+    private string? _selectedHistoryMonth;
+    private List<string>? _historyMonthKeys;
+    private bool _isUpdatingHistoryRange;
     private bool _isLoadingSettings = true;
     private bool _hasShownTrayBalloon;
 
@@ -48,6 +54,8 @@ public partial class MainWindow : Window
         SelectComboByTag(BreakReminderComboBox,
             _storage.Settings.BreakReminderMinutes.ToString(CultureInfo.InvariantCulture), fallbackIndex: 3);
         SelectComboByTag(ThemeComboBox, ThemeService.Normalize(_storage.Settings.Theme), fallbackIndex: 0);
+        SelectComboByTag(DailyGoalComboBox,
+            _storage.Settings.DailyGoalMinutes.ToString(CultureInfo.InvariantCulture), fallbackIndex: 0);
 
         _isLoadingSettings = false;
     }
@@ -109,7 +117,11 @@ public partial class MainWindow : Window
 
         // 2. Üst özet kartları
         TodayActiveText.Text = today.ActiveFormatted;
-        TodayIdleSubtext.Text = $"Boşta: {today.IdleFormatted}  •  Uykuda: {today.SleepFormatted}";
+        int goalMinutes = _storage.Settings.DailyGoalMinutes;
+        string goalPart = goalMinutes > 0
+            ? $"  •  Hedef: %{Math.Round(today.ActiveSeconds * 100.0 / (goalMinutes * 60.0)):0}"
+            : "";
+        TodayIdleSubtext.Text = $"Boşta: {today.IdleFormatted}  •  Uykuda: {today.SleepFormatted}{goalPart}";
 
         string avg7 = _tracker.GetAverageActiveFormatted(7);
         string avg30 = _tracker.GetAverageActiveFormatted(30);
@@ -123,13 +135,118 @@ public partial class MainWindow : Window
         // 3. Grafik güncelleme
         UpdateChartSection();
 
-        // 4. Tablo güncelleme
-        var tableItems = _storage.GetRecentDays(30)
-            .Where(d => d.ActiveSeconds > 0 || d.IdleSeconds > 0 || d.SleepSeconds > 0 || d.DateKey == today.DateKey)
+        // 4. Tablo güncelleme (son 30 gün veya seçilen ay)
+        UpdateHistoryRangeOptions(today.DateKey);
+
+        List<DailyUsage> tableItems;
+        string summaryLabel;
+        if (_selectedHistoryMonth is { } month)
+        {
+            tableItems = _storage.GetAllRecordedDays()
+                .Where(d => d.DateKey.StartsWith(month + "-", StringComparison.Ordinal))
+                .Where(d => HasAnyTime(d) || d.DateKey == today.DateKey)
+                .ToList();
+            summaryLabel = "Ay toplamı";
+        }
+        else
+        {
+            tableItems = _storage.GetRecentDays(30)
+                .Where(d => HasAnyTime(d) || d.DateKey == today.DateKey)
+                .ToList();
+            summaryLabel = "30 gün toplamı";
+        }
+
+        UpdateHistoryTable(tableItems);
+        UpdateHistorySummary(summaryLabel, tableItems);
+    }
+
+    private static bool HasAnyTime(DailyUsage d) => d.ActiveSeconds > 0 || d.IdleSeconds > 0 || d.SleepSeconds > 0;
+
+    /// <summary>
+    /// Dönem seçicisini doldurur: "Son 30 gün" + kaydı olan her ay (yeniden eskiye). Liste yalnızca
+    /// ay kümesi değiştiğinde yeniden kurulur; seçili dönem korunur. Seçili ayın kaydı kalmadıysa
+    /// (ör. geçmiş sıfırlandı) "Son 30 gün"e dönülür.
+    /// </summary>
+    private void UpdateHistoryRangeOptions(string todayKey)
+    {
+        var months = _storage.GetAllRecordedDays()
+            .Where(d => HasAnyTime(d) || d.DateKey == todayKey)
+            .Select(d => d.DateKey.Length >= 7 ? d.DateKey[..7] : d.DateKey)
+            .Distinct()
+            .OrderByDescending(m => m, StringComparer.Ordinal)
             .ToList();
 
-        HistoryDataGrid.ItemsSource = null;
-        HistoryDataGrid.ItemsSource = tableItems;
+        if (_historyMonthKeys != null && _historyMonthKeys.SequenceEqual(months))
+            return;
+
+        _historyMonthKeys = months;
+        if (_selectedHistoryMonth != null && !months.Contains(_selectedHistoryMonth))
+            _selectedHistoryMonth = null;
+
+        _isUpdatingHistoryRange = true;
+        try
+        {
+            HistoryRangeComboBox.Items.Clear();
+            HistoryRangeComboBox.Items.Add(new ComboBoxItem { Content = "Son 30 gün", Tag = "" });
+            foreach (string m in months)
+            {
+                string label = DateTime.TryParseExact(m + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var dt)
+                    ? dt.ToString("MMMM yyyy", TrCulture)
+                    : m;
+                HistoryRangeComboBox.Items.Add(new ComboBoxItem { Content = label, Tag = m });
+            }
+            SelectComboByTag(HistoryRangeComboBox, _selectedHistoryMonth ?? "", fallbackIndex: 0);
+        }
+        finally
+        {
+            _isUpdatingHistoryRange = false;
+        }
+    }
+
+    private void UpdateHistorySummary(string label, List<DailyUsage> items)
+    {
+        long totalActive = items.Sum(d => d.ActiveSeconds);
+        var activeDays = items.Where(d => d.ActiveSeconds > 0).ToList();
+        string avg = activeDays.Count > 0
+            ? DailyUsage.FormatDuration((long)activeDays.Average(d => d.ActiveSeconds))
+            : "0 dk";
+        HistorySummaryText.Text =
+            $"{label}: {DailyUsage.FormatDuration(totalActive)} aktif  •  Günlük ort.: {avg}  •  {activeDays.Count} gün";
+    }
+
+    private void HistoryRangeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingHistoryRange) return;
+
+        string? tag = (HistoryRangeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        _selectedHistoryMonth = string.IsNullOrEmpty(tag) ? null : tag;
+        RefreshDashboard();
+    }
+
+    /// <summary>
+    /// Satırlar aynıysa (aynı günler, aynı sırada) yalnızca hücre değerlerini yeniler; tablo baştan
+    /// yüklenmez, böylece kullanıcı aşağı kaydırmışsa en üste atlamaz ve seçili satır kaybolmaz.
+    /// Satırlar değiştiyse (yeni gün, sıfırlama, Olay Günlüğü aktarımı) tablo yeniden yüklenir; bu
+    /// durumda da seçili gün korunur.
+    /// </summary>
+    private void UpdateHistoryTable(List<DailyUsage> items)
+    {
+        if (HistoryDataGrid.ItemsSource is List<DailyUsage> current &&
+            current.Count == items.Count &&
+            current.Zip(items).All(p => ReferenceEquals(p.First, p.Second)))
+        {
+            foreach (var item in current)
+                item.NotifyAllChanged();
+            return;
+        }
+
+        string? selectedKey = (HistoryDataGrid.SelectedItem as DailyUsage)?.DateKey;
+        HistoryDataGrid.ItemsSource = items;
+        if (selectedKey != null)
+        {
+            HistoryDataGrid.SelectedItem = items.FirstOrDefault(d => d.DateKey == selectedKey);
+        }
     }
 
     private void SetStatusBadge(bool warn, string text)
@@ -154,10 +271,20 @@ public partial class MainWindow : Window
             .OrderBy(d => d.DateKey)
             .ToList();
 
-        // Ölçek: gösterilen günlerdeki en uzun "açık" süre (Aktif + Boşta + Uyku), en az 1 saat
+        // Ölçek: gösterilen günlerdeki en uzun "açık" süre (Aktif + Boşta + Uyku), en az 1 saat.
+        // Günlük hedef açıksa hedef çizgisi her zaman görünsün diye ölçek en az hedef kadardır.
+        long goalSeconds = Math.Max(0, _storage.Settings.DailyGoalMinutes) * 60L;
         long maxTotal = days.Count > 0 ? days.Max(d => d.ActiveSeconds + d.IdleSeconds + d.SleepSeconds) : 0;
         if (maxTotal < 3600)
             maxTotal = 3600;
+        if (maxTotal < goalSeconds)
+            maxTotal = goalSeconds;
+
+        double goalOffset = goalSeconds > 0 ? Math.Round(goalSeconds / (double)maxTotal * MaxBarHeight) : 0;
+        var goalMargin = new Thickness(0, 0, 0, Math.Max(0, goalOffset - 1));
+        var goalVisibility = goalSeconds > 0 ? Visibility.Visible : Visibility.Collapsed;
+        GoalLegend.Visibility = goalVisibility;
+        GoalLegendText.Text = $"Hedef ({DailyUsage.FormatDuration(goalSeconds)})";
 
         long peakActive = days.Count > 0 ? days.Max(d => d.ActiveSeconds) : 0;
         ChartMaxInfoText.Text = $"(En yüksek aktif: {DailyUsage.FormatDuration(peakActive)})";
@@ -189,7 +316,10 @@ public partial class MainWindow : Window
             vm.ActiveBrush = isToday ? todayActiveBrush : activeBrush;
             vm.LabelBrush = isToday ? todayLabelBrush : labelBrush;
             vm.LabelWeight = isToday ? FontWeights.Bold : FontWeights.Normal;
-            vm.TooltipText = $"{d.DisplayDate}\nAktif: {d.ActiveFormatted}\nBoşta: {d.IdleFormatted}\nUykuda: {d.SleepFormatted}\nİlk Açılış: {d.FirstSeenFormatted} - Son: {d.LastSeenFormatted}";
+            vm.GoalMargin = goalMargin;
+            vm.GoalVisibility = goalVisibility;
+            vm.TooltipText = $"{d.DisplayDate}\nAktif: {d.ActiveFormatted}\nBoşta: {d.IdleFormatted}\nUykuda: {d.SleepFormatted}\nİlk Açılış: {d.FirstSeenFormatted} - Son: {d.LastSeenFormatted}"
+                + (goalSeconds > 0 ? $"\nHedef: {DailyUsage.FormatDuration(goalSeconds)}" : "");
             chartItems.Add(vm);
         }
 
@@ -254,6 +384,21 @@ public partial class MainWindow : Window
         {
             _storage.Settings.BreakReminderMinutes = minutes;
             _storage.SaveSettings();
+        }
+    }
+
+    private void DailyGoalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings) return;
+
+        if (DailyGoalComboBox.SelectedItem is ComboBoxItem item &&
+            int.TryParse(item.Tag?.ToString(), out int minutes))
+        {
+            _storage.Settings.DailyGoalMinutes = minutes;
+            // Yeni hedef için bugün yeniden bildirim gösterilebilsin
+            _storage.Settings.DailyGoalNotifiedDate = null;
+            _storage.SaveSettings();
+            RefreshDashboard();
         }
     }
 
@@ -429,6 +574,8 @@ public class ChartBarViewModel
     public Brush LabelBrush { get; set; } = Brushes.Gray;
     public FontWeight LabelWeight { get; set; } = FontWeights.Normal;
     public string TooltipText { get; set; } = "";
+    public Thickness GoalMargin { get; set; }
+    public Visibility GoalVisibility { get; set; } = Visibility.Collapsed;
 
     /// <summary>
     /// Süreleri piksel yüksekliklerine çevirir. Sıfırdan büyük ama çok küçük dilimler en az birkaç piksel

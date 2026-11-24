@@ -12,6 +12,21 @@ Yazım kuralları:
 
 ---
 
+## Yayınlanmamış
+
+Yenilikler:
+- Mola hatırlatıcısı sistem tepsisi menüsünden 1 saatliğine veya gün sonuna kadar susturulabiliyor (ör. toplantı veya ekran paylaşımı sırasında); susturma istenince kaldırılabiliyor
+- Günlük hedef: alt çubuktan bir günlük kullanım hedefi (4–12 saat) seçilebiliyor. Bugünkü aktif süre hedefe ulaşınca günde bir kez bildirim gösteriliyor, grafikte yeşil hedef çizgisi çiziliyor ve bugünkü kartta hedefin yüzde kaçına ulaşıldığı yazıyor
+- Günlük Geçmiş tablosunda dönem seçici: son 30 günün yanında kayıtlı her ay ayrı ayrı görüntülenebiliyor; seçilen dönemin toplam ve günlük ortalama aktif süresi tablonun üstünde yazıyor
+
+İyileştirmeler:
+- Uygulama arka planda çalışırken masaüstü veya Başlat menüsü kısayoluna tıklamak artık pencereyi doğrudan öne getiriyor ("zaten çalışıyor" uyarısı çıkmıyor)
+- Günlük Geçmiş tablosunda aşağı kaydırırken tablo artık her birkaç saniyede bir en üste atlamıyor, seçili satır da kaybolmuyor
+- Kurulum ve kaldırma sırasında açık olan uygulama artık düzgün kapatılıyor; son dakikaların kullanım süresi kaybolmuyor ve saatin yanında hayalet simge kalmıyor
+- Kurulum sihirbazı masaüstü ve Başlat menüsü kısayollarını, antivirüs programlarının daha az şüphelendiği Windows'un kendi yöntemiyle oluşturuyor
+
+---
+
 ## Sürüm 1.3.0 (24 Kasım 2026)
 
 Yenilikler:

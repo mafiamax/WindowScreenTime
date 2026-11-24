@@ -43,6 +43,7 @@
     <SolidColorBrush x:Key="ChartEmptyBrush" Color="#262B36"/>
     <SolidColorBrush x:Key="ChartLabelBrush" Color="#9CA3AF"/>
     <SolidColorBrush x:Key="ChartTodayLabelBrush" Color="#38BDF8"/>
+    <SolidColorBrush x:Key="ChartGoalBrush" Color="#22C55E"/>
 
     <!-- Durum rozeti -->
     <SolidColorBrush x:Key="StatusActiveBgBrush" Color="#14332B"/>

@@ -18,6 +18,7 @@ public partial class App : System.Windows.Application
     private const string UninstallRegKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\WindowScreenTime";
 
     private Mutex? _instanceMutex;
+    private InstanceSignals? _instanceSignals;
     private Forms.NotifyIcon? _notifyIcon;
     private Forms.ToolStripMenuItem? _todayStatusMenuItem;
     private Icon? _trayIconHandle;
@@ -40,17 +41,34 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        bool startMinimized = e.Args.Any(a => a.Equals("--minimized", StringComparison.OrdinalIgnoreCase));
+
         _instanceMutex = new Mutex(true, MutexName, out bool createdNew);
         if (!createdNew)
         {
-            System.Windows.MessageBox.Show(
-                "WindowScreenTime zaten arka planda (Sistem Tepsisinde) çalışıyor.",
-                "WindowScreenTime",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            // Uygulama zaten çalışıyor. Kullanıcı kısayola tıkladıysa çalışan örneğin penceresini öne
+            // getir; Windows ile otomatik başlatmada (--minimized) sessizce çık. Çalışan örnek eski bir
+            // sürümse (sinyali dinlemiyorsa) eskisi gibi bilgi kutusu göster.
+            _instanceMutex.Dispose();
+            _instanceMutex = null;
+            if (!startMinimized && !InstanceSignals.SignalShowWindow())
+            {
+                System.Windows.MessageBox.Show(
+                    "WindowScreenTime zaten arka planda (Sistem Tepsisinde) çalışıyor.",
+                    "WindowScreenTime",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
             Shutdown();
             return;
         }
+
+        _instanceSignals = new InstanceSignals(
+            onShowRequested: () => Dispatcher.InvokeAsync(ShowDashboardWindow),
+            onExitRequested: () => Dispatcher.InvokeAsync(() =>
+            {
+                if (!IsExiting) ExitApplication();
+            }));
 
         Storage = new DataStorageService();
         // Eski sürümlerin Başlangıç klasörüne koyduğu .cmd dosyasını (oturum açılışında komut penceresi
@@ -62,6 +80,7 @@ public partial class App : System.Windows.Application
         Tracker = new UsageTrackerService(Storage);
         Tracker.StatsUpdated += OnTrackerStatsUpdated;
         Tracker.BreakReminderDue += OnBreakReminderDue;
+        Tracker.DailyGoalReached += OnDailyGoalReached;
 
         InitializeTrayIcon();
         Tracker.Start();
@@ -69,7 +88,6 @@ public partial class App : System.Windows.Application
         var mainWindow = new MainWindow(Storage, Tracker);
         MainWindow = mainWindow;
 
-        bool startMinimized = e.Args.Any(a => a.Equals("--minimized", StringComparison.OrdinalIgnoreCase));
         if (!startMinimized)
         {
             mainWindow.Show();
@@ -89,13 +107,23 @@ public partial class App : System.Windows.Application
 
         try
         {
-            // Açık olan başka WindowScreenTime işlemlerini kapat
+            // Açık olan WindowScreenTime'dan önce düzgün kapanmasını iste (son kullanım süresi kaydedilir),
+            // kapanmazsa zorla kapat.
+            InstanceSignals.SignalExit();
             int currentPid = Environment.ProcessId;
             foreach (var proc in Process.GetProcessesByName("WindowScreenTime"))
             {
                 if (proc.Id != currentPid)
                 {
-                    try { proc.Kill(); proc.WaitForExit(2000); } catch { }
+                    try
+                    {
+                        if (!proc.WaitForExit(5000))
+                        {
+                            proc.Kill();
+                            proc.WaitForExit(2000);
+                        }
+                    }
+                    catch { }
                 }
             }
 
@@ -159,10 +187,38 @@ public partial class App : System.Windows.Application
         var exitItem = new Forms.ToolStripMenuItem("Tamamen Çıkış Yap");
         exitItem.Click += (_, _) => ExitApplication();
 
+        // Mola hatırlatıcısını susturma (ör. toplantı / ekran paylaşımı sırasında)
+        var breakMenu = new Forms.ToolStripMenuItem("Mola hatırlatıcısı");
+        var muteHourItem = new Forms.ToolStripMenuItem("1 saat sustur");
+        muteHourItem.Click += (_, _) => Tracker.MuteBreakReminderUntil(DateTime.Now.AddHours(1));
+        var muteTodayItem = new Forms.ToolStripMenuItem("Bugünlük sustur");
+        muteTodayItem.Click += (_, _) => Tracker.MuteBreakReminderUntil(DateTime.Today.AddDays(1));
+        var unmuteItem = new Forms.ToolStripMenuItem("Susturmayı kaldır");
+        unmuteItem.Click += (_, _) => Tracker.MuteBreakReminderUntil(null);
+        breakMenu.DropDownItems.Add(muteHourItem);
+        breakMenu.DropDownItems.Add(muteTodayItem);
+        breakMenu.DropDownItems.Add(unmuteItem);
+
+        // Menü her açılışta güncel durumu gösterir
+        contextMenu.Opening += (_, _) =>
+        {
+            bool reminderOn = Storage.Settings.BreakReminderMinutes > 0;
+            DateTime? mutedUntil = Tracker.BreakReminderMutedUntil;
+            breakMenu.Enabled = reminderOn;
+            breakMenu.Text = !reminderOn
+                ? "Mola hatırlatıcısı (kapalı)"
+                : mutedUntil.HasValue
+                    ? $"Mola hatırlatıcısı (susturuldu: {FormatMuteEnd(mutedUntil.Value)})"
+                    : "Mola hatırlatıcısı";
+            unmuteItem.Enabled = mutedUntil.HasValue;
+        };
+
         contextMenu.Items.Add(_todayStatusMenuItem);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
         contextMenu.Items.Add(openItem);
         contextMenu.Items.Add(aboutItem);
+        contextMenu.Items.Add(new Forms.ToolStripSeparator());
+        contextMenu.Items.Add(breakMenu);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
         contextMenu.Items.Add(exitItem);
 
@@ -187,6 +243,25 @@ public partial class App : System.Windows.Application
                 8000,
                 "Mola zamanı",
                 $"{duration} kesintisiz çalıştınız. Kısa bir ara verip gözlerinizi dinlendirin.",
+                Forms.ToolTipIcon.Info);
+        });
+    }
+
+    private static string FormatMuteEnd(DateTime until) =>
+        until >= DateTime.Today.AddDays(1) && until.TimeOfDay == TimeSpan.Zero
+            ? "gün sonuna kadar"
+            : $"{until:HH:mm} saatine kadar";
+
+    private void OnDailyGoalReached(TimeSpan todayActive)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            string goal = Models.DailyUsage.FormatDuration(Storage.Settings.DailyGoalMinutes * 60L);
+            string active = Models.DailyUsage.FormatDuration((long)todayActive.TotalSeconds);
+            _notifyIcon?.ShowBalloonTip(
+                10000,
+                "Günlük hedefe ulaşıldı",
+                $"Bugün {active} aktif kullandınız (hedef: {goal}). Günü kapatmayı düşünebilirsiniz.",
                 Forms.ToolTipIcon.Info);
         });
     }
@@ -287,8 +362,11 @@ public partial class App : System.Windows.Application
     public void ExitApplication()
     {
         IsExiting = true;
+        _instanceSignals?.Dispose();
+        _instanceSignals = null;
         SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         Tracker.BreakReminderDue -= OnBreakReminderDue;
+        Tracker.DailyGoalReached -= OnDailyGoalReached;
         Tracker.StatsUpdated -= OnTrackerStatsUpdated;
         Tracker.Dispose();
 

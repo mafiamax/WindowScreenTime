@@ -1,11 +1,20 @@
+using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace WindowScreenTime.Models;
 
-public class DailyUsage
+public class DailyUsage : INotifyPropertyChanged
 {
     private static readonly CultureInfo TrCulture = new("tr-TR");
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>
+    /// Tablodaki satırın tüm hücrelerini yeniler. Tablo kaynağını baştan yüklemek yerine kullanılır;
+    /// böylece kaydırma konumu ve seçili satır korunur.
+    /// </summary>
+    public void NotifyAllChanged() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
 
     /// <summary>
     /// yyyy-MM-dd formatında tarih anahtarı.
