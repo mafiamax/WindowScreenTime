@@ -15,7 +15,7 @@
     <Product>WindowScreenTime Installer</Product>
     <Company>Erhan.M</Company>
     <Copyright>Copyright (c) 2026 Erhan.M</Copyright>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -20,7 +20,7 @@
     <Description>Windows 11 Ekran ve Kullanım Süresi Takipçisi</Description>
     <!-- Sürüm yalnızca buradan yönetilir. AssemblyVersion / FileVersion bu değerden otomatik türetilir;
          ayrıca elle yazılmamalıdır (UpdateService mevcut sürümü AssemblyVersion'dan okur). -->
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -12,7 +12,7 @@ Yazım kuralları:
 
 ---
 
-## Yayınlanmamış
+## Sürüm 1.4.0 (24 Kasım 2026)
 
 Yenilikler:
 - Mola hatırlatıcısı sistem tepsisi menüsünden 1 saatliğine veya gün sonuna kadar susturulabiliyor (ör. toplantı veya ekran paylaşımı sırasında); susturma istenince kaldırılabiliyor
