@@ -1,0 +1,79 @@
+<Window x:Class="WindowScreenTime.Views.RestoreConfirmWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Verileri Geri Yükle - Windows Screen Time"
+        Width="470"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="Segoe UI Variable Display, Segoe UI"
+        KeyDown="Window_KeyDown">
+
+    <Border Background="{DynamicResource BgPrimaryBrush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Margin="12">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" ShadowDepth="0" Opacity="0.55" Color="Black"/>
+        </Border.Effect>
+
+        <StackPanel Margin="24,18,24,20">
+            <TextBlock Text="Verileri Geri Yükle"
+                       FontSize="17"
+                       FontWeight="Bold"
+                       Margin="0,0,0,4"/>
+            <TextBlock x:Name="BackupInfoText"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="0,0,0,14"/>
+
+            <Border Background="{DynamicResource BgCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    Padding="16,12"
+                    Margin="0,0,0,14">
+                <StackPanel>
+                    <TextBlock x:Name="DaysToAddText" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="SkipText" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                    <TextBlock FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,10,0,0"
+                               Text="Mevcut kayıtların üzerine yazılmaz ve bugünkü kayda dokunulmaz. İşlemden önce mevcut veriler veri klasörüne otomatik olarak yedeklenir."/>
+                </StackPanel>
+            </Border>
+
+            <CheckBox x:Name="IncludeSettingsCheckBox"
+                      Content="Ayarları da yedekten al"
+                      FontSize="12.5"
+                      Cursor="Hand"
+                      Foreground="{DynamicResource TextPrimaryBrush}"/>
+            <TextBlock x:Name="SettingsInfoText"
+                       FontSize="11.5"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Margin="22,4,0,0"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                <Button Content="Vazgeç"
+                        Style="{StaticResource ModernButtonStyle}"
+                        Padding="16,7"
+                        Margin="0,0,8,0"
+                        IsCancel="True"
+                        Click="CancelButton_Click"/>
+                <Button x:Name="ContinueButton"
+                        Content="Devam"
+                        Style="{StaticResource SelectedButtonStyle}"
+                        Padding="16,7"
+                        Click="ContinueButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

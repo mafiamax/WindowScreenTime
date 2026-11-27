@@ -454,14 +454,7 @@ public class UsageTrackerService : IDisposable
     public string ResetHistory()
     {
         // Silmeden önce o ana kadarki süreyi işle: yedek en güncel hali içersin
-        if (_isPaused)
-        {
-            AllocatePausedTimeUntil(DateTime.Now, Environment.TickCount64);
-        }
-        else
-        {
-            ProcessElapsedUntilNow();
-        }
+        CaptureElapsedTime();
 
         string backupPath = _storage.ResetAllUsage();
 
@@ -486,6 +479,35 @@ public class UsageTrackerService : IDisposable
         _storage.SaveUsage();
         StatsUpdated?.Invoke();
         return backupPath;
+    }
+
+    /// <summary>O ana kadar geçen süreyi (uykuda/kilitliyken geçen dahil) sayaçlara işler.</summary>
+    private void CaptureElapsedTime()
+    {
+        if (_isPaused)
+        {
+            AllocatePausedTimeUntil(DateTime.Now, Environment.TickCount64);
+        }
+        else
+        {
+            ProcessElapsedUntilNow();
+        }
+    }
+
+    /// <summary>"Verileri Yedekle": o ana kadarki süre de yedeğe girsin diye önce sayaçları günceller.</summary>
+    public int ExportBackup(string filePath)
+    {
+        CaptureElapsedTime();
+        return _storage.ExportBackup(filePath);
+    }
+
+    /// <summary>"Verileri Geri Yükle": yedeği mevcut geçmişle birleştirir (bkz. DataStorageService.RestoreBackup).</summary>
+    public RestoreResult RestoreBackup(BackupData backup, bool includeSettings)
+    {
+        CaptureElapsedTime();
+        var result = _storage.RestoreBackup(backup, includeSettings);
+        StatsUpdated?.Invoke();
+        return result;
     }
 
     public DailyUsage GetTodayUsage()

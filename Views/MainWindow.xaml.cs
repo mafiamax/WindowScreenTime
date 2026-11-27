@@ -25,7 +25,6 @@ public partial class MainWindow : Window
     private string? _selectedHistoryMonth;
     private List<string>? _historyMonthKeys;
     private bool _isUpdatingHistoryRange;
-    private bool _isLoadingSettings = true;
     private bool _hasShownTrayBalloon;
 
     public MainWindow(DataStorageService storage, UsageTrackerService tracker)
@@ -35,29 +34,11 @@ public partial class MainWindow : Window
         _storage = storage;
         _tracker = tracker;
 
-        LoadSettingsIntoUi();
         RefreshDashboard();
 
         _tracker.StatsUpdated += OnTrackerStatsUpdated;
         ThemeService.ThemeChanged += OnThemeChanged;
         SourceInitialized += (_, _) => ThemeService.ApplyTitleBar(this);
-    }
-
-    private void LoadSettingsIntoUi()
-    {
-        _isLoadingSettings = true;
-
-        StartupCheckBox.IsChecked = _storage.Settings.RunOnStartup;
-
-        SelectComboByTag(IdleTimeoutComboBox,
-            _storage.Settings.IdleTimeoutMinutes.ToString(CultureInfo.InvariantCulture), fallbackIndex: 2);
-        SelectComboByTag(BreakReminderComboBox,
-            _storage.Settings.BreakReminderMinutes.ToString(CultureInfo.InvariantCulture), fallbackIndex: 3);
-        SelectComboByTag(ThemeComboBox, ThemeService.Normalize(_storage.Settings.Theme), fallbackIndex: 0);
-        SelectComboByTag(DailyGoalComboBox,
-            _storage.Settings.DailyGoalMinutes.ToString(CultureInfo.InvariantCulture), fallbackIndex: 0);
-
-        _isLoadingSettings = false;
     }
 
     private static void SelectComboByTag(System.Windows.Controls.ComboBox combo, string tag, int fallbackIndex)
@@ -158,6 +139,9 @@ public partial class MainWindow : Window
 
         UpdateHistoryTable(tableItems);
         UpdateHistorySummary(summaryLabel, tableItems);
+
+        // 5. Alt çubuk: geçerli ayarların özeti
+        SettingsSummaryText.Text = SettingsWindow.DescribeSettings(_storage.Settings);
     }
 
     private static bool HasAnyTime(DailyUsage d) => d.ActiveSeconds > 0 || d.IdleSeconds > 0 || d.SleepSeconds > 0;
@@ -354,64 +338,15 @@ public partial class MainWindow : Window
         UpdateChartSection();
     }
 
-    private void StartupCheckBox_Changed(object sender, RoutedEventArgs e)
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) => OpenSettings();
+
+    private void SettingsSummaryText_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e) => OpenSettings();
+
+    private static void OpenSettings()
     {
-        if (_isLoadingSettings) return;
-
-        _storage.Settings.RunOnStartup = StartupCheckBox.IsChecked == true;
-        _storage.SaveSettings();
-    }
-
-    private void IdleTimeoutComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_isLoadingSettings) return;
-
-        if (IdleTimeoutComboBox.SelectedItem is ComboBoxItem item &&
-            int.TryParse(item.Tag?.ToString(), out int minutes))
+        if (System.Windows.Application.Current is App app)
         {
-            _storage.Settings.IdleTimeoutMinutes = minutes;
-            _storage.SaveSettings();
-            _tracker.ProcessElapsedUntilNow();
-        }
-    }
-
-    private void BreakReminderComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_isLoadingSettings) return;
-
-        if (BreakReminderComboBox.SelectedItem is ComboBoxItem item &&
-            int.TryParse(item.Tag?.ToString(), out int minutes))
-        {
-            _storage.Settings.BreakReminderMinutes = minutes;
-            _storage.SaveSettings();
-        }
-    }
-
-    private void DailyGoalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_isLoadingSettings) return;
-
-        if (DailyGoalComboBox.SelectedItem is ComboBoxItem item &&
-            int.TryParse(item.Tag?.ToString(), out int minutes))
-        {
-            _storage.Settings.DailyGoalMinutes = minutes;
-            // Yeni hedef için bugün yeniden bildirim gösterilebilsin
-            _storage.Settings.DailyGoalNotifiedDate = null;
-            _storage.SaveSettings();
-            RefreshDashboard();
-        }
-    }
-
-    private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_isLoadingSettings) return;
-
-        if (ThemeComboBox.SelectedItem is ComboBoxItem item)
-        {
-            string theme = ThemeService.Normalize(item.Tag?.ToString());
-            _storage.Settings.Theme = theme;
-            _storage.SaveSettings();
-            ThemeService.Apply(theme);
+            app.ShowSettingsWindow();
         }
     }
 

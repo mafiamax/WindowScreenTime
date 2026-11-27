@@ -12,6 +12,15 @@ Yazım kuralları:
 
 ---
 
+## Yayınlanmamış
+
+Yenilikler:
+- Ayarlar penceresi: Windows ile başlat, boşta sayma süresi, mola hatırlatıcısı, günlük hedef ve tema artık ana pencerenin üstündeki "Ayarlar" düğmesiyle (veya sistem tepsisi menüsünden) açılan ayrı bir pencerede. Ana pencerenin alt çubuğunda geçerli ayarların kısa özeti görünüyor
+- Verileri Yedekle: kullanım geçmişi ve tüm ayarlar, seçilen konuma tek bir yedek dosyası olarak kaydediliyor (başka bilgisayara taşımaya uygun)
+- Verileri Geri Yükle: yedek dosyasındaki günler mevcut geçmişe ekleniyor; zaten kaydı olan günlere ve bugüne dokunulmuyor. İstenirse ayarlar da yedekten alınabiliyor. İşlemden önce mevcut veriler otomatik olarak yedekleniyor
+
+---
+
 ## Sürüm 1.4.0 (24 Kasım 2026)
 
 Yenilikler:

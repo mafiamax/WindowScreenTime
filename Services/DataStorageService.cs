@@ -244,6 +244,201 @@ public class DataStorageService
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Verileri Yedekle / Geri Yükle
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Kullanım geçmişinin ve ayarların tamamını tek bir yedek dosyasına yazar (kullanıcının seçtiği
+    /// konuma). Önce geçici dosyaya yazılır, sonra yerine taşınır; yarım yedek dosyası kalmaz.
+    /// </summary>
+    /// <returns>Yedeğe yazılan gün sayısı.</returns>
+    public int ExportBackup(string filePath)
+    {
+        string json;
+        int dayCount;
+        lock (_syncLock)
+        {
+            var days = _usageByDate.Values
+                .Where(HasAnyTime)
+                .OrderByDescending(x => x.DateKey)
+                .ToList();
+            dayCount = days.Count;
+
+            var backup = new BackupData
+            {
+                AppVersion = UpdateService.GetCurrentVersionString(),
+                CreatedAt = DateTime.Now,
+                MachineName = Environment.MachineName,
+                Settings = Settings,
+                Usage = days
+            };
+            json = JsonSerializer.Serialize(backup, JsonOptions);
+        }
+
+        string tempFile = filePath + ".tmp";
+        File.WriteAllText(tempFile, json);
+        File.Move(tempFile, filePath, overwrite: true);
+        return dayCount;
+    }
+
+    /// <summary>
+    /// Yedek dosyasını okur ve doğrular. Hiçbir veriyi değiştirmez. Geçersiz tarihli veya negatif süreli
+    /// kayıtlar ile hiç süre içermeyen günler ayıklanır.
+    /// </summary>
+    /// <exception cref="InvalidDataException">Dosya geçerli bir WindowScreenTime yedeği değilse
+    /// (mesaj kullanıcıya gösterilebilir).</exception>
+    public static BackupData ReadBackup(string filePath)
+    {
+        const string NotABackup = "Seçilen dosya geçerli bir WindowScreenTime yedeği değil.";
+
+        BackupData? backup;
+        try
+        {
+            backup = JsonSerializer.Deserialize<BackupData>(File.ReadAllText(filePath));
+        }
+        catch (JsonException)
+        {
+            throw new InvalidDataException(NotABackup + "\n\nDosya bozuk veya farklı bir dosya olabilir.");
+        }
+
+        if (backup == null || backup.Format != BackupData.FormatName || backup.FormatVersion < 1)
+            throw new InvalidDataException(NotABackup);
+
+        if (backup.FormatVersion > BackupData.CurrentFormatVersion)
+        {
+            throw new InvalidDataException(
+                "Bu yedek, uygulamanın daha yeni bir sürümüyle oluşturulmuş.\n\n" +
+                "Önce uygulamayı güncelleyip (Hakkında → Güncellemeleri Kontrol Et) sonra tekrar deneyin.");
+        }
+
+        if (backup.Usage == null)
+            throw new InvalidDataException(NotABackup + "\n\nDosyada kullanım geçmişi bulunamadı.");
+
+        backup.Usage = backup.Usage
+            .Where(d => d != null
+                        && DateTime.TryParseExact(d.DateKey, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.None, out _)
+                        && d.ActiveSeconds >= 0 && d.IdleSeconds >= 0 && d.SleepSeconds >= 0
+                        && HasAnyTime(d))
+            .GroupBy(d => d.DateKey)
+            .Select(g => g.First())
+            .OrderByDescending(d => d.DateKey)
+            .ToList();
+
+        return backup;
+    }
+
+    /// <summary>
+    /// Geri yüklemede kaç günün ekleneceğini, kaçının atlanacağını hesaplar (hiçbir şeyi değiştirmez).
+    /// Atlananlar: zaten kaydı olan günler, bugün ve ileri tarihli günler.
+    /// </summary>
+    public RestorePreview PreviewRestore(BackupData backup)
+    {
+        lock (_syncLock)
+        {
+            int add = 0, skip = 0;
+            foreach (var day in backup.Usage ?? new List<DailyUsage>())
+            {
+                if (CanRestoreDay(day.DateKey)) add++;
+                else skip++;
+            }
+            return new RestorePreview(add, skip);
+        }
+    }
+
+    private bool CanRestoreDay(string dateKey)
+    {
+        string todayKey = DateTime.Today.ToString("yyyy-MM-dd");
+        // Bugün canlı takip ediliyor; ileri tarihler (saati yanlış bilgisayar) alınmaz.
+        if (string.CompareOrdinal(dateKey, todayKey) >= 0)
+            return false;
+        // Aynı gün iki tarafta da varsa mevcut kayıt kalır: hiçbir ölçüm kaybolmaz.
+        return !_usageByDate.TryGetValue(dateKey, out var existing) || !HasAnyTime(existing);
+    }
+
+    /// <summary>
+    /// Yedeği mevcut verilerle BİRLEŞTİRİR (üzerine yazmaz): yalnızca mevcut geçmişte olmayan geçmiş
+    /// günler eklenir. İstenirse kullanıcı ayarları da yedekten alınır. İşlemden önce mevcut geçmiş (ve
+    /// ayarlar alınacaksa ayar dosyası) veri klasörüne yedeklenir; bu yedek yazılamazsa hiçbir şey
+    /// değiştirilmez ve hata fırlatılır.
+    /// </summary>
+    public RestoreResult RestoreBackup(BackupData backup, bool includeSettings)
+    {
+        lock (_syncLock)
+        {
+            if (_usageSaveBlocked)
+            {
+                throw new InvalidOperationException(
+                    "Geçmiş dosyası okunamadığı ve yedeklenemediği için geri yükleme yapılamıyor.");
+            }
+
+            // 1) Güvenlik yedeği (FileMode.CreateNew: aynı adlı dosyanın üzerine yazmaz)
+            string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            // Aynı saniyede ikinci bir geri yükleme olursa dosya adına sıra numarası eklenir
+            for (int n = 2; File.Exists(Path.Combine(_dataDir, $"usage_history.before-restore-{stamp}.json")); n++)
+                stamp = $"{DateTime.Now:yyyyMMdd-HHmmss}-{n}";
+
+            string safetyPath = Path.Combine(_dataDir, $"usage_history.before-restore-{stamp}.json");
+            WriteNewFile(safetyPath,
+                JsonSerializer.Serialize(_usageByDate.Values.OrderByDescending(x => x.DateKey).ToList(), JsonOptions));
+            if (includeSettings && backup.Settings != null)
+            {
+                WriteNewFile(Path.Combine(_dataDir, $"settings.before-restore-{stamp}.json"),
+                    JsonSerializer.Serialize(Settings, JsonOptions));
+            }
+
+            // 2) Günleri birleştir
+            int added = 0, skipped = 0;
+            foreach (var day in backup.Usage ?? new List<DailyUsage>())
+            {
+                if (!CanRestoreDay(day.DateKey))
+                {
+                    skipped++;
+                    continue;
+                }
+                _usageByDate[day.DateKey] = day;
+                added++;
+            }
+            if (added > 0)
+                SaveUsage();
+
+            // 3) Ayarlar (yalnızca kullanıcı tercihleri; susturma / bildirim günü gibi anlık durumlar alınmaz)
+            bool settingsRestored = false;
+            if (includeSettings && backup.Settings is { } s)
+            {
+                bool startupChanged = Settings.RunOnStartup != s.RunOnStartup;
+                int goal = Math.Max(0, s.DailyGoalMinutes);
+
+                Settings.IdleTimeoutMinutes = s.IdleTimeoutMinutes > 0 ? s.IdleTimeoutMinutes : Settings.IdleTimeoutMinutes;
+                Settings.BreakReminderMinutes = Math.Max(0, s.BreakReminderMinutes);
+                Settings.Theme = ThemeService.Normalize(s.Theme);
+                if (Settings.DailyGoalMinutes != goal)
+                {
+                    Settings.DailyGoalMinutes = goal;
+                    Settings.DailyGoalNotifiedDate = null;
+                }
+                Settings.RunOnStartup = s.RunOnStartup;
+
+                // Başlangıç kısayoluna yalnızca "Windows ile başlat" gerçekten değiştiyse dokunulur
+                if (startupChanged) SaveSettings();
+                else WriteSettingsFile();
+                settingsRestored = true;
+            }
+
+            return new RestoreResult(added, skipped, settingsRestored, safetyPath);
+        }
+    }
+
+    private static void WriteNewFile(string path, string content)
+    {
+        using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
+        using var writer = new StreamWriter(stream);
+        writer.Write(content);
+    }
+
+    private static bool HasAnyTime(DailyUsage d) => d.ActiveSeconds > 0 || d.IdleSeconds > 0 || d.SleepSeconds > 0;
+
     public void SaveUsage()
     {
         lock (_syncLock)

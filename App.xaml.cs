@@ -181,6 +181,9 @@ public partial class App : System.Windows.Application
         var openItem = new Forms.ToolStripMenuItem("Kontrol Panelini Aç");
         openItem.Click += (_, _) => ShowDashboardWindow();
 
+        var settingsItem = new Forms.ToolStripMenuItem("Ayarlar");
+        settingsItem.Click += (_, _) => ShowSettingsWindow();
+
         var aboutItem = new Forms.ToolStripMenuItem("Hakkında");
         aboutItem.Click += (_, _) => ShowAboutWindow();
 
@@ -216,6 +219,7 @@ public partial class App : System.Windows.Application
         contextMenu.Items.Add(_todayStatusMenuItem);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
         contextMenu.Items.Add(openItem);
+        contextMenu.Items.Add(settingsItem);
         contextMenu.Items.Add(aboutItem);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
         contextMenu.Items.Add(breakMenu);
@@ -348,6 +352,36 @@ public partial class App : System.Windows.Application
 
         _aboutWindow.Show();
         _aboutWindow.Activate();
+    }
+
+    private SettingsWindow? _settingsWindow;
+
+    /// <summary>Ayarlar penceresini açar (tek örnek), Hakkında penceresiyle aynı yerleşim kurallarıyla.</summary>
+    public void ShowSettingsWindow()
+    {
+        if (_settingsWindow != null)
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsWindow = new SettingsWindow(Storage, Tracker,
+            onSettingsChanged: () => (MainWindow as Views.MainWindow)?.RefreshDashboard());
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+
+        if (MainWindow != null && MainWindow.IsVisible && MainWindow.WindowState != WindowState.Minimized)
+        {
+            _settingsWindow.Owner = MainWindow;
+            _settingsWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        }
+        else
+        {
+            _settingsWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            _settingsWindow.ShowInTaskbar = true;
+        }
+
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
     }
 
     public void ShowMinimizedNotificationOnce()

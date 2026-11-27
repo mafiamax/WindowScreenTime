@@ -55,13 +55,6 @@
             </Setter>
         </Style>
 
-        <Style x:Key="SettingLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="FontSize" Value="12.5"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
-        </Style>
-
         <Style x:Key="LegendDot" TargetType="Border">
             <Setter Property="Width" Value="10"/>
             <Setter Property="Height" Value="10"/>
@@ -139,6 +132,12 @@
                         Margin="0,0,8,0"
                         ToolTip="Pencereyi gizler; takip sistem tepsisinde devam eder (X tuşu da aynı işi yapar)"
                         Click="MinimizeToTrayButton_Click"/>
+                <Button x:Name="SettingsButton"
+                        Content="Ayarlar"
+                        Style="{StaticResource ModernButtonStyle}"
+                        Margin="0,0,8,0"
+                        ToolTip="Windows ile başlat, boşta sayma, mola hatırlatıcısı, günlük hedef, tema ve veri yedekleme"
+                        Click="SettingsButton_Click"/>
                 <Button x:Name="AboutButton"
                         Content="Hakkında"
                         Style="{StaticResource ModernButtonStyle}"
@@ -470,80 +469,17 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Dar pencerelerde alt satıra kayar -->
-                <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <CheckBox x:Name="StartupCheckBox"
-                              Content="Windows ile başlat"
-                              Foreground="{DynamicResource TextPrimaryBrush}"
-                              VerticalAlignment="Center"
-                              VerticalContentAlignment="Center"
-                              FontSize="12.5"
-                              Cursor="Hand"
-                              Margin="0,4,16,4"
-                              ToolTip="Windows oturumu açıldığında uygulama sistem tepsisinde otomatik başlar"
-                              Checked="StartupCheckBox_Changed"
-                              Unchecked="StartupCheckBox_Changed"/>
-
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,16,4">
-                        <TextBlock Text="Boşta sayma:" Style="{StaticResource SettingLabel}"
-                                   ToolTip="Bu süre boyunca klavye ve fareye dokunulmazsa süre Boşta sayılır"/>
-                        <ComboBox x:Name="IdleTimeoutComboBox"
-                                  Width="90"
-                                  SelectionChanged="IdleTimeoutComboBox_SelectionChanged">
-                            <ComboBoxItem Content="1 dakika" Tag="1"/>
-                            <ComboBoxItem Content="3 dakika" Tag="3"/>
-                            <ComboBoxItem Content="5 dakika" Tag="5"/>
-                            <ComboBoxItem Content="10 dakika" Tag="10"/>
-                            <ComboBoxItem Content="15 dakika" Tag="15"/>
-                            <ComboBoxItem Content="30 dakika" Tag="30"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,16,4">
-                        <TextBlock Text="Mola hatırlatma:" Style="{StaticResource SettingLabel}"
-                                   ToolTip="Bu kadar süre kesintisiz aktif kullanımdan sonra sistem tepsisinden mola bildirimi gösterilir. Boşta sayma süresi kadar ara vermek sayacı sıfırlar."/>
-                        <ComboBox x:Name="BreakReminderComboBox"
-                                  Width="90"
-                                  SelectionChanged="BreakReminderComboBox_SelectionChanged">
-                            <ComboBoxItem Content="Kapalı" Tag="0"/>
-                            <ComboBoxItem Content="30 dakika" Tag="30"/>
-                            <ComboBoxItem Content="45 dakika" Tag="45"/>
-                            <ComboBoxItem Content="50 dakika" Tag="50"/>
-                            <ComboBoxItem Content="60 dakika" Tag="60"/>
-                            <ComboBoxItem Content="90 dakika" Tag="90"/>
-                            <ComboBoxItem Content="120 dakika" Tag="120"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,16,4">
-                        <TextBlock Text="Günlük hedef:" Style="{StaticResource SettingLabel}"
-                                   ToolTip="Bugünkü aktif kullanım bu süreye ulaşınca sistem tepsisinden bir kez bildirim gösterilir ve grafikte hedef çizgisi çizilir"/>
-                        <ComboBox x:Name="DailyGoalComboBox"
-                                  Width="80"
-                                  SelectionChanged="DailyGoalComboBox_SelectionChanged">
-                            <ComboBoxItem Content="Kapalı" Tag="0"/>
-                            <ComboBoxItem Content="4 saat" Tag="240"/>
-                            <ComboBoxItem Content="5 saat" Tag="300"/>
-                            <ComboBoxItem Content="6 saat" Tag="360"/>
-                            <ComboBoxItem Content="7 saat" Tag="420"/>
-                            <ComboBoxItem Content="8 saat" Tag="480"/>
-                            <ComboBoxItem Content="9 saat" Tag="540"/>
-                            <ComboBoxItem Content="10 saat" Tag="600"/>
-                            <ComboBoxItem Content="12 saat" Tag="720"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,16,4">
-                        <TextBlock Text="Tema:" Style="{StaticResource SettingLabel}"/>
-                        <ComboBox x:Name="ThemeComboBox"
-                                  Width="80"
-                                  SelectionChanged="ThemeComboBox_SelectionChanged">
-                            <ComboBoxItem Content="Koyu" Tag="Dark"/>
-                            <ComboBoxItem Content="Açık" Tag="Light"/>
-                            <ComboBoxItem Content="Sistem" Tag="System"/>
-                        </ComboBox>
-                    </StackPanel>
-                </WrapPanel>
+                <!-- Geçerli ayarların özeti (ayarlar "Ayarlar" penceresinden değiştirilir) -->
+                <TextBlock x:Name="SettingsSummaryText"
+                           Grid.Column="0"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,16,0"
+                           Cursor="Hand"
+                           ToolTip="Ayarları değiştirmek için tıklayın"
+                           MouseLeftButtonUp="SettingsSummaryText_MouseLeftButtonUp"/>
 
                 <Button Grid.Column="1"
                         Content="Uygulamadan Çık"

@@ -1,0 +1,195 @@
+<Window x:Class="WindowScreenTime.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ayarlar - Windows Screen Time"
+        Width="480"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="Segoe UI Variable Display, Segoe UI"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <Style x:Key="RowLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,6,16,6"/>
+        </Style>
+        <Style x:Key="RowHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="SectionCard" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource BgCardBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,12"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource BgPrimaryBrush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Margin="12">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" ShadowDepth="0" Opacity="0.55" Color="Black"/>
+        </Border.Effect>
+
+        <StackPanel>
+            <!-- Başlık çubuğu (sürüklenebilir) -->
+            <Grid Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Margin="0,0,0,4">
+                <TextBlock Text="Ayarlar"
+                           Margin="20,14,0,0"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <Button Content="✕"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,8,8,0"
+                        Width="30"
+                        Height="28"
+                        Padding="0"
+                        FontSize="12"
+                        Style="{StaticResource ModernButtonStyle}"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        ToolTip="Kapat (Esc)"
+                        Click="CloseButton_Click"/>
+            </Grid>
+
+            <StackPanel Margin="24,0,24,20">
+                <!-- GENEL AYARLAR -->
+                <Border Style="{StaticResource SectionCard}" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="GENEL" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource AccentBlueBrush}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="140"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Style="{StaticResource RowLabel}" Text="Windows ile başlat"
+                                       ToolTip="Windows oturumu açıldığında uygulama sistem tepsisinde otomatik başlar"/>
+                            <CheckBox x:Name="StartupCheckBox" Grid.Row="0" Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      Cursor="Hand"
+                                      ToolTip="Windows oturumu açıldığında uygulama sistem tepsisinde otomatik başlar"
+                                      Checked="StartupCheckBox_Changed"
+                                      Unchecked="StartupCheckBox_Changed"/>
+
+                            <TextBlock Grid.Row="1" Style="{StaticResource RowLabel}" Text="Boşta sayma süresi"
+                                       ToolTip="Bu süre boyunca klavye ve fareye dokunulmazsa süre Boşta sayılır"/>
+                            <ComboBox x:Name="IdleTimeoutComboBox" Grid.Row="1" Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Bu süre boyunca klavye ve fareye dokunulmazsa süre Boşta sayılır"
+                                      SelectionChanged="IdleTimeoutComboBox_SelectionChanged">
+                                <ComboBoxItem Content="1 dakika" Tag="1"/>
+                                <ComboBoxItem Content="3 dakika" Tag="3"/>
+                                <ComboBoxItem Content="5 dakika" Tag="5"/>
+                                <ComboBoxItem Content="10 dakika" Tag="10"/>
+                                <ComboBoxItem Content="15 dakika" Tag="15"/>
+                                <ComboBoxItem Content="30 dakika" Tag="30"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="2" Style="{StaticResource RowLabel}" Text="Mola hatırlatıcısı"
+                                       ToolTip="Bu kadar süre kesintisiz aktif kullanımdan sonra sistem tepsisinden mola bildirimi gösterilir. Boşta sayma süresi kadar ara vermek sayacı sıfırlar."/>
+                            <ComboBox x:Name="BreakReminderComboBox" Grid.Row="2" Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Bu kadar süre kesintisiz aktif kullanımdan sonra sistem tepsisinden mola bildirimi gösterilir. Boşta sayma süresi kadar ara vermek sayacı sıfırlar."
+                                      SelectionChanged="BreakReminderComboBox_SelectionChanged">
+                                <ComboBoxItem Content="Kapalı" Tag="0"/>
+                                <ComboBoxItem Content="30 dakika" Tag="30"/>
+                                <ComboBoxItem Content="45 dakika" Tag="45"/>
+                                <ComboBoxItem Content="50 dakika" Tag="50"/>
+                                <ComboBoxItem Content="60 dakika" Tag="60"/>
+                                <ComboBoxItem Content="90 dakika" Tag="90"/>
+                                <ComboBoxItem Content="120 dakika" Tag="120"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="3" Style="{StaticResource RowLabel}" Text="Günlük hedef"
+                                       ToolTip="Bugünkü aktif kullanım bu süreye ulaşınca sistem tepsisinden bir kez bildirim gösterilir ve grafikte hedef çizgisi çizilir"/>
+                            <ComboBox x:Name="DailyGoalComboBox" Grid.Row="3" Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Bugünkü aktif kullanım bu süreye ulaşınca sistem tepsisinden bir kez bildirim gösterilir ve grafikte hedef çizgisi çizilir"
+                                      SelectionChanged="DailyGoalComboBox_SelectionChanged">
+                                <ComboBoxItem Content="Kapalı" Tag="0"/>
+                                <ComboBoxItem Content="4 saat" Tag="240"/>
+                                <ComboBoxItem Content="5 saat" Tag="300"/>
+                                <ComboBoxItem Content="6 saat" Tag="360"/>
+                                <ComboBoxItem Content="7 saat" Tag="420"/>
+                                <ComboBoxItem Content="8 saat" Tag="480"/>
+                                <ComboBoxItem Content="9 saat" Tag="540"/>
+                                <ComboBoxItem Content="10 saat" Tag="600"/>
+                                <ComboBoxItem Content="12 saat" Tag="720"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="4" Style="{StaticResource RowLabel}" Text="Tema"/>
+                            <ComboBox x:Name="ThemeComboBox" Grid.Row="4" Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      SelectionChanged="ThemeComboBox_SelectionChanged">
+                                <ComboBoxItem Content="Koyu" Tag="Dark"/>
+                                <ComboBoxItem Content="Açık" Tag="Light"/>
+                                <ComboBoxItem Content="Sistem" Tag="System"/>
+                            </ComboBox>
+                        </Grid>
+                        <TextBlock Style="{StaticResource RowHint}" Margin="0,8,0,0"
+                                   Text="Değişiklikler seçildiği anda uygulanır ve kaydedilir."/>
+                    </StackPanel>
+                </Border>
+
+                <!-- VERİ YEDEKLEME -->
+                <Border Style="{StaticResource SectionCard}">
+                    <StackPanel>
+                        <TextBlock Text="VERİ YEDEKLEME" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource AccentIndigoBrush}"/>
+                        <TextBlock Style="{StaticResource RowHint}" Margin="0,0,0,12"
+                                   Text="Kullanım geçmişini ve ayarları tek bir dosyaya kaydedebilir, bu dosyayı başka bir bilgisayara taşıyabilirsiniz. Geri yükleme mevcut verilerin üzerine yazmaz: yalnızca eksik günler eklenir."/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BackupButton"
+                                    Grid.Column="0"
+                                    Content="Verileri Yedekle"
+                                    Style="{StaticResource ModernButtonStyle}"
+                                    Padding="12,8"
+                                    ToolTip="Kullanım geçmişini ve tüm ayarları seçeceğiniz konuma tek bir yedek dosyası olarak kaydeder"
+                                    Click="BackupButton_Click"/>
+                            <Button x:Name="RestoreButton"
+                                    Grid.Column="2"
+                                    Content="Verileri Geri Yükle"
+                                    Style="{StaticResource ModernButtonStyle}"
+                                    Padding="12,8"
+                                    ToolTip="Bir yedek dosyasındaki günleri mevcut geçmişe ekler. Zaten kaydı olan günlere ve bugüne dokunulmaz; işlemden önce mevcut veriler otomatik yedeklenir."
+                                    Click="RestoreButton_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
