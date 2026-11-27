@@ -12,7 +12,7 @@ Yazım kuralları:
 
 ---
 
-## Yayınlanmamış
+## Sürüm 1.5.0 (27 Kasım 2026)
 
 Yenilikler:
 - Ayarlar penceresi: Windows ile başlat, boşta sayma süresi, mola hatırlatıcısı, günlük hedef ve tema artık ana pencerenin üstündeki "Ayarlar" düğmesiyle (veya sistem tepsisi menüsünden) açılan ayrı bir pencerede. Ana pencerenin alt çubuğunda geçerli ayarların kısa özeti görünüyor
