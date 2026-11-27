@@ -237,7 +237,8 @@ public partial class SettingsWindow : Window
         System.Windows.MessageBox.Show(this,
             $"Geri yükleme tamamlandı.\n\n" +
             $"• Eklenen gün: {result.DaysAdded}\n" +
-            $"• Atlanan gün (zaten mevcut veya bugün): {result.DaysSkipped}\n" +
+            $"• Atlanan gün (zaten mevcut): {result.DaysSkipped}\n" +
+            $"• Bugün: {(result.TodayUpdated ? "yedekteki daha uzun sürelerle güncellendi" : "değiştirilmedi")}\n" +
             $"• Ayarlar: {(result.SettingsRestored ? "yedekten alındı" : "değiştirilmedi")}\n\n" +
             $"İşlemden önceki verilerinizin yedeği:\n{result.SafetyBackupPath}",
             "Geri Yükleme Tamamlandı",

@@ -22,11 +22,14 @@ public partial class RestoreConfirmWindow : Window
             $"Yedek tarihi: {backup.CreatedAt:dd.MM.yyyy HH:mm}{machine}{version}\n" +
             $"Yedekteki gün sayısı: {backup.Usage?.Count ?? 0}";
 
-        DaysToAddText.Text = preview.DaysToAdd > 0
+        string added = preview.DaysToAdd > 0
             ? $"{preview.DaysToAdd} gün geçmişe eklenecek."
-            : "Eklenecek yeni gün yok (yedekteki tüm günler zaten mevcut).";
+            : "Eklenecek yeni geçmiş gün yok.";
+        if (preview.TodayWillUpdate)
+            added += "\nBugünün süreleri yedekteki daha uzun değerlerle güncellenecek.";
+        DaysToAddText.Text = added;
         SkipText.Text = preview.DaysSkipped > 0
-            ? $"{preview.DaysSkipped} gün atlanacak (zaten kaydı var veya bugüne ait)."
+            ? $"{preview.DaysSkipped} gün atlanacak (zaten kaydı var)."
             : "Atlanacak gün yok.";
 
         if (backup.Settings is { } s)

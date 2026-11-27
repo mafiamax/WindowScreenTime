@@ -165,7 +165,7 @@
                     <StackPanel>
                         <TextBlock Text="VERİ YEDEKLEME" Style="{StaticResource SectionTitle}" Foreground="{DynamicResource AccentIndigoBrush}"/>
                         <TextBlock Style="{StaticResource RowHint}" Margin="0,0,0,12"
-                                   Text="Kullanım geçmişini ve ayarları tek bir dosyaya kaydedebilir, bu dosyayı başka bir bilgisayara taşıyabilirsiniz. Geri yükleme mevcut verilerin üzerine yazmaz: yalnızca eksik günler eklenir."/>
+                                   Text="Kullanım geçmişini ve ayarları tek bir dosyaya kaydedebilir, bu dosyayı başka bir bilgisayara taşıyabilirsiniz. Geri yükleme mevcut verilerin üzerine yazmaz: eksik günler eklenir. &quot;Geçmişi Sıfırla&quot; öncesi otomatik yedekler de (veri klasöründe) buradan geri yüklenebilir."/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>

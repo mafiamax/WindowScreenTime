@@ -14,11 +14,6 @@ public class AppSettings
     public bool RunOnStartup { get; set; } = false;
 
     /// <summary>
-    /// İlk kurulumda Windows Olay Günlüğü geçmişi içeri aktarıldı mı?
-    /// </summary>
-    public bool HasImportedEventLog { get; set; } = false;
-
-    /// <summary>
     /// Kesintisiz bu kadar dakika Aktif kullanımdan sonra mola hatırlatması gösterilir.
     /// 0 = kapalı. Varsayılan: 50 dakika.
     /// </summary>

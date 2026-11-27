@@ -17,7 +17,16 @@ Yazım kuralları:
 Yenilikler:
 - Ayarlar penceresi: Windows ile başlat, boşta sayma süresi, mola hatırlatıcısı, günlük hedef ve tema artık ana pencerenin üstündeki "Ayarlar" düğmesiyle (veya sistem tepsisi menüsünden) açılan ayrı bir pencerede. Ana pencerenin alt çubuğunda geçerli ayarların kısa özeti görünüyor
 - Verileri Yedekle: kullanım geçmişi ve tüm ayarlar, seçilen konuma tek bir yedek dosyası olarak kaydediliyor (başka bilgisayara taşımaya uygun)
-- Verileri Geri Yükle: yedek dosyasındaki günler mevcut geçmişe ekleniyor; zaten kaydı olan günlere ve bugüne dokunulmuyor. İstenirse ayarlar da yedekten alınabiliyor. İşlemden önce mevcut veriler otomatik olarak yedekleniyor
+- Verileri Geri Yükle: yedek dosyasındaki günler mevcut geçmişe ekleniyor; zaten kaydı olan geçmiş günlere dokunulmuyor. Bugün için yedekteki süre daha uzunsa o kullanılıyor (süreler toplanmaz, iki kez sayılmaz). İstenirse ayarlar da yedekten alınabiliyor. İşlemden önce mevcut veriler otomatik olarak yedekleniyor
+- "Geçmişi Sıfırla" artık silmeden önce geçmişi ve ayarları "Verileri Yedekle" ile aynı biçimde yedekliyor; sıfırlama, Ayarlar → "Verileri Geri Yükle" ile o günün verisi dahil geri alınabiliyor
+
+İyileştirmeler:
+- "Ayarlar" düğmesinde dişli çark, "Hakkında" düğmesinde bilgi (i) simgesi
+- Gereksiz "Tepsiye Küçült" düğmesi kaldırıldı; pencerenin X düğmesi aynı işi yapıyor (takip sistem tepsisinde devam eder)
+
+Kaldırılanlar:
+- "Olay Günlüğünü Tara" özelliği kaldırıldı. Windows Olay Günlüğü kilitli, ekranı kapalı veya boşta geçen zamanı ayırt edemediği için aktarılan günlerin aktif süreleri yüksek çıkıyor ve ortalamaları bozuyordu; uygulama artık yalnızca kendi ölçtüğü verileri kullanıyor. Mevcut kayıtlarınız olduğu gibi korunur
+- CSV dosyasındaki "Kaynak" sütunu kaldırıldı (tüm kayıtlar artık uygulamanın kendi ölçümü)
 
 ---
 

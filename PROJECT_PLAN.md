@@ -1,7 +1,9 @@
 # Proje Planı: Windows Screen Time (WindowScreenTime)
 
 ## 1. Proje Özeti
-Windows 11 üzerinde arka planda (Sistem Tepsisi / System Tray) çok düşük kaynak tüketimiyle çalışan, kullanıcının **aktif** ve **boşta (idle)** kalma sürelerini takip eden, ayrıca ilk kurulumda Windows Olay Günlüğü'nden (Event Viewer) geçmiş günlerin verilerini de içeri aktarabilen bağımsız bir masaüstü uygulaması.
+Windows 11 üzerinde arka planda (Sistem Tepsisi / System Tray) çok düşük kaynak tüketimiyle çalışan, kullanıcının **aktif** ve **boşta (idle)** kalma sürelerini takip eden bağımsız bir masaüstü uygulaması.
+
+> Not (Kasım 2026): İlk planda yer alan "Windows Olay Günlüğü'nden geçmiş aktarımı" kaldırıldı (GitHub issue #3). Olay Günlüğü kilitli / ekranı kapalı / boşta geçen zamanı ayırt edemediği için istatistikleri bozuyordu; uygulama yalnızca kendi ölçtüğü verileri kullanır.
 
 ---
 
@@ -26,8 +28,6 @@ Windows 11 üzerinde arka planda (Sistem Tepsisi / System Tray) çok düşük ka
    - Bilgisayar uykuya geçtiğinde veya `Win + L` ile kilitlendiğinde aktif süre sayımı anında duraklatılır.
 3. **Gece Yarısı Geçişi (00:00 Split):**
    - Bilgisayar gece 00:00'ı geçerek açık kalırsa, o ana kadarki süre önceki güne yazılır ve yeni gün için sayaç sıfırdan başlar.
-4. **Windows Geçmişini İçeri Aktarma (Opsiyonel İlk Kurulum):**
-   - Uygulama ilk kez açıldığında, Windows Sistem Olay Günlüğü'nü (Event ID `6005`, `6006`, `12`, `13`, `42`, `1`) tarayarak geçmiş günlerin açık kalma sürelerini hesaplar ve grafiklerin ilk günden dolu görünmesini sağlar.
 
 ### B. Masaüstü Arayüzü (Dashboard Penceresi)
 1. **Özet Kartları (Üst Bölüm):**
@@ -54,8 +54,7 @@ WindowScreenTime/
 ├── Services/
 │   ├── IdleDetector.cs            # Win32 GetLastInputInfo P/Invoke sarmalayıcısı
 │   ├── UsageTrackerService.cs     # Ana zamanlayıcı, kilit/uyku olayları ve süre hesaplama
-│   ├── DataStorageService.cs      # Yerel JSON veri ve Registry başlangıç yönetimi
-│   └── EventLogImporter.cs        # Windows Event Viewer'dan geçmiş günleri okuyan modül
+│   └── DataStorageService.cs      # Yerel JSON veri ve Registry başlangıç yönetimi
 └── Views/
     ├── MainWindow.xaml            # Modern Windows 11 Dashboard arayüzü
     └── MainWindow.xaml.cs         # Arayüz etkileşimleri ve veri bağlama
@@ -66,6 +65,6 @@ WindowScreenTime/
 ## 5. Geliştirme Adımları (Yeni Projede Yapılacaklar)
 1. `.NET 8 WPF` projesinin oluşturulması (`dotnet new wpf`).
 2. `IdleDetector` ve `UsageTrackerService` sınıflarının yazılıp arka plan sayacının kurulması.
-3. Yerel veri kayıt (`DataStorageService`) ve geçmiş Windows kayıtlarını aktarma (`EventLogImporter`) modüllerinin eklenmesi.
+3. Yerel veri kayıt (`DataStorageService`) modülünün eklenmesi.
 4. Windows 11 koyu tema uyumlu Dashboard arayüzünün (`MainWindow.xaml`) ve Sistem Tepsisi (Tray Icon) entegrasyonunun tamamlanması.
 5. Projenin derlenip (`dotnet build` / `dotnet run`) test edilmesi.

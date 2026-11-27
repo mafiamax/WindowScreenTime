@@ -29,8 +29,11 @@ public class BackupData
     public List<DailyUsage>? Usage { get; set; }
 }
 
-/// <summary>Geri yükleme öncesi özet: kaç gün eklenecek, kaçı zaten mevcut olduğu için atlanacak.</summary>
-public record RestorePreview(int DaysToAdd, int DaysSkipped);
+/// <summary>
+/// Geri yükleme öncesi özet: kaç geçmiş gün eklenecek, kaçı atlanacak (zaten kaydı var / ileri tarih),
+/// bugünün süreleri yedekteki daha uzun değerlerle güncellenecek mi.
+/// </summary>
+public record RestorePreview(int DaysToAdd, int DaysSkipped, bool TodayWillUpdate);
 
 /// <summary>Geri yükleme sonucu.</summary>
-public record RestoreResult(int DaysAdded, int DaysSkipped, bool SettingsRestored, string SafetyBackupPath);
+public record RestoreResult(int DaysAdded, int DaysSkipped, bool TodayUpdated, bool SettingsRestored, string SafetyBackupPath);

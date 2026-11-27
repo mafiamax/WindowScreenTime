@@ -30,7 +30,7 @@ public static class CsvExportService
         {
             "Tarih", "Gün", "İlk Açılış", "Son Aktiflik",
             "Aktif (dk)", "Boşta (dk)", "Uykuda (dk)", "Toplam Açık (dk)",
-            "Aktif", "Kaynak"
+            "Aktif"
         }));
         sb.Append("\r\n");
 
@@ -46,8 +46,7 @@ public static class CsvExportService
                 ToMinutes(d.IdleSeconds),
                 ToMinutes(d.SleepSeconds),
                 ToMinutes(d.ActiveSeconds + d.IdleSeconds),
-                d.ActiveFormatted,
-                d.IsImportedFromEventLog ? "Olay Günlüğü" : "Canlı takip"
+                d.ActiveFormatted
             };
             sb.Append(string.Join(separator, fields.Select(f => Escape(f, separator))));
             sb.Append("\r\n");

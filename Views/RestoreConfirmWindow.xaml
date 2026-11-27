@@ -46,7 +46,7 @@
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                     <TextBlock FontSize="12" TextWrapping="Wrap"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,10,0,0"
-                               Text="Mevcut kayıtların üzerine yazılmaz ve bugünkü kayda dokunulmaz. İşlemden önce mevcut veriler veri klasörüne otomatik olarak yedeklenir."/>
+                               Text="Kaydı olan geçmiş günlere dokunulmaz. Bugün için her süreden büyük olan alınır; aynı süre iki kez sayılmaz. İşlemden önce mevcut veriler veri klasörüne otomatik olarak yedeklenir."/>
                 </StackPanel>
             </Border>
 

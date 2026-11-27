@@ -26,7 +26,6 @@ public class DailyUsage : INotifyPropertyChanged
     public long SleepSeconds { get; set; }
     public DateTime? FirstSeen { get; set; }
     public DateTime? LastSeen { get; set; }
-    public bool IsImportedFromEventLog { get; set; }
 
     [JsonIgnore]
     public DateTime ParsedDate =>

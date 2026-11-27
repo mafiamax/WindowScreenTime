@@ -111,38 +111,29 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="ImportEventLogButton"
-                        Content="Olay Günlüğünü Tara"
-                        Style="{StaticResource ModernButtonStyle}"
-                        Margin="0,0,8,0"
-                        ToolTipService.ShowDuration="20000"
-                        Click="ImportEventLogButton_Click">
-                    <Button.ToolTip>
-                        <TextBlock MaxWidth="320" TextWrapping="Wrap">
-                            Geçmiş günleri Windows Olay Günlüğü'nden doldurur.
-                            <LineBreak/><LineBreak/>
-                            Not: Olay Günlüğü yalnızca bilgisayarın açık kaldığı süreyi bilir; kilitli,
-                            ekranı kapalı veya boşta geçen zamanı ayırt edemez. Bu yüzden aktarılan
-                            "Aktif" süreler yüksek görünebilir. Uygulamanın kendi ölçtüğü günlere dokunulmaz.
-                        </TextBlock>
-                    </Button.ToolTip>
-                </Button>
-                <Button Content="Tepsiye Küçült"
-                        Style="{StaticResource ModernButtonStyle}"
-                        Margin="0,0,8,0"
-                        ToolTip="Pencereyi gizler; takip sistem tepsisinde devam eder (X tuşu da aynı işi yapar)"
-                        Click="MinimizeToTrayButton_Click"/>
+                <!-- Simgeler Windows'un yerleşik simge yazı tipinden gelir (Windows 11: Segoe Fluent Icons,
+                     Windows 10: Segoe MDL2 Assets); ayrı resim dosyası gerekmez. -->
                 <Button x:Name="SettingsButton"
-                        Content="Ayarlar"
                         Style="{StaticResource ModernButtonStyle}"
                         Margin="0,0,8,0"
                         ToolTip="Windows ile başlat, boşta sayma, mola hatırlatıcısı, günlük hedef, tema ve veri yedekleme"
-                        Click="SettingsButton_Click"/>
+                        Click="SettingsButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontWeight="Normal" FontSize="14" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                        <TextBlock Text="Ayarlar" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
                 <Button x:Name="AboutButton"
-                        Content="Hakkında"
                         Style="{StaticResource ModernButtonStyle}"
                         ToolTip="Uygulama bilgileri, künye ve güncelleme kontrolü"
-                        Click="AboutButton_Click"/>
+                        Click="AboutButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontWeight="Normal" FontSize="14" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                        <TextBlock Text="Hakkında" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Grid>
 

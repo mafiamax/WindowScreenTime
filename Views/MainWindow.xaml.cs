@@ -211,7 +211,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// Satırlar aynıysa (aynı günler, aynı sırada) yalnızca hücre değerlerini yeniler; tablo baştan
     /// yüklenmez, böylece kullanıcı aşağı kaydırmışsa en üste atlamaz ve seçili satır kaybolmaz.
-    /// Satırlar değiştiyse (yeni gün, sıfırlama, Olay Günlüğü aktarımı) tablo yeniden yüklenir; bu
+    /// Satırlar değiştiyse (yeni gün, sıfırlama, yedekten geri yükleme) tablo yeniden yüklenir; bu
     /// durumda da seçili gün korunur.
     /// </summary>
     private void UpdateHistoryTable(List<DailyUsage> items)
@@ -390,9 +390,8 @@ public partial class MainWindow : Window
     {
         var answer = System.Windows.MessageBox.Show(
             "Bugün dahil kayıtlı tüm günler silinecek ve sayaçlar şu andan itibaren sıfırdan başlayacak.\n\n" +
-            "• Silinen geçmiş, veri klasörüne yedek dosyası olarak kaydedilir.\n" +
-            "• Ayarlarınız (tema, boşta sayma, mola hatırlatma, Windows ile başlat) değişmez.\n" +
-            "• İsterseniz geçmiş günleri daha sonra \"Olay Günlüğünü Tara\" ile yeniden doldurabilirsiniz.\n\n" +
+            "• Silmeden önce geçmiş ve ayarlar veri klasörüne yedeklenir; istediğinizde Ayarlar → \"Verileri Geri Yükle\" ile geri alabilirsiniz.\n" +
+            "• Ayarlarınız (tema, boşta sayma, mola hatırlatma, günlük hedef, Windows ile başlat) değişmez.\n\n" +
             "Devam etmek istiyor musunuz?",
             "Geçmişi Sıfırla",
             MessageBoxButton.YesNo,
@@ -408,7 +407,8 @@ public partial class MainWindow : Window
             RefreshDashboard();
             System.Windows.MessageBox.Show(
                 "Kullanım geçmişi sıfırlandı; sayaçlar şu andan itibaren yeniden başladı.\n\n" +
-                $"Eski geçmişin yedeği:\n{backupPath}\n\n" +
+                $"Sıfırlamadan önceki verilerin yedeği:\n{backupPath}\n\n" +
+                "Geri almak için: Ayarlar → \"Verileri Geri Yükle\" → bu dosyayı seçin.\n" +
                 "(Veri klasörüne Hakkında penceresindeki \"Veri Klasörünü Aç\" ile ulaşabilirsiniz.)",
                 "Sıfırlama Tamamlandı",
                 MessageBoxButton.OK,
@@ -430,33 +430,6 @@ public partial class MainWindow : Window
         {
             app.ShowAboutWindow();
         }
-    }
-
-    private async void ImportEventLogButton_Click(object sender, RoutedEventArgs e)
-    {
-        ImportEventLogButton.IsEnabled = false;
-        ImportEventLogButton.Content = "Taranıyor...";
-
-        try
-        {
-            int count = await _tracker.ImportEventLogHistoryAsync();
-            RefreshDashboard();
-            System.Windows.MessageBox.Show(
-                $"Windows Olay Günlüğü tarandı ve {count} günlük geçmiş oturum kaydı güncellendi.",
-                "Geçmiş Aktarıldı",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-        finally
-        {
-            ImportEventLogButton.Content = "Olay Günlüğünü Tara";
-            ImportEventLogButton.IsEnabled = true;
-        }
-    }
-
-    private void MinimizeToTrayButton_Click(object sender, RoutedEventArgs e)
-    {
-        HideToSystemTray();
     }
 
     private void ExitAppButton_Click(object sender, RoutedEventArgs e)

@@ -92,19 +92,6 @@ public class UsageTrackerService : IDisposable
         _timer.Start();
     }
 
-    public async Task<int> ImportEventLogHistoryAsync()
-    {
-        var imported = await Task.Run(() => EventLogImporter.ImportRecentDaysFromSystemLog(30));
-        if (imported.Count > 0)
-        {
-            _storage.MergeImportedDays(imported);
-        }
-        _storage.Settings.HasImportedEventLog = true;
-        _storage.SaveSettings();
-        StatsUpdated?.Invoke();
-        return imported.Count;
-    }
-
     /// <summary>
     /// Kullanıcının uygulamayla doğrudan etkileşime girdiği (ör. pencereyi etkinleştirdiği) anlarda çağrılır.
     /// Bu anda oturum kilitli, ekran kapalı veya sistem uykuda olamaz; kaçırılmış bir kilit açma /
